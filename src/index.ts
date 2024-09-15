@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.disable("x-powerd-by");
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan("tiny"));
+// app.use(morgan("tiny"));
 app.use(
 	session({
 		secret: process.env.SESSION_SECRET as string,

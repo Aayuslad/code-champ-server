@@ -1147,7 +1147,6 @@ var problemRouter_default = problemRouter;
 // src/index.ts
 var import_cors = __toESM(require("cors"));
 var import_express_session = __toESM(require("express-session"));
-var import_morgan = __toESM(require("morgan"));
 var app = (0, import_express3.default)();
 var PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
@@ -1162,7 +1161,6 @@ app.use(import_express3.default.json());
 app.use((0, import_cookie_parser.default)());
 app.disable("x-powerd-by");
 app.use(import_express3.default.urlencoded({ extended: true }));
-app.use((0, import_morgan.default)("tiny"));
 app.use(
   (0, import_express_session.default)({
     secret: process.env.SESSION_SECRET,
