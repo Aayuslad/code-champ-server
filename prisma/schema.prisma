@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String  @id @default(uuid())
+  userName   String  @unique
+  email      String  @unique
+  password   String
+  profileImg String?
+
+  Problem Problem[]
+
+  Submission Submission[]
+}
+
+model Problem {
+  id                  String          @id @default(uuid())
+  problemNumber       Int             @unique
+  title               String          @unique @db.VarChar(50)
+  slug                String          @unique
+  difficultyLevel     difficultyLevel
+  description         String          @db.VarChar(1000)
+  functionStructure   String          @db.VarChar(1000)
+  boilerplateCode     String
+  sampleTestCasesKey  String // URL to the sample test cases JSON in S3
+  testCasesKey        String // URL to the test cases JSON in S3
+  constraints         Constraint[]
+  topicTags           TopicTag[]
+  hints               Hint[]
+  likeCount           Int             @default(0)
+  submissionCount     Int             @default(0)
+  acceptedSubmissions Int             @default(0)
+  approved            Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  createdById         String
+  createdBy           User            @relation(fields: [createdById], references: [id])
+}
+
+model Constraint {
+  id        String  @id @default(uuid())
+  content   String
+  problemId String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+}
+
+model TopicTag {
+  id       String    @id @default(uuid())
+  content  String
+  problems Problem[]
+}
+
+model Hint {
+  id        String  @id @default(uuid())
+  content   String
+  problemId String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+}
+
+model Submission {
+  id          String           @id @default(uuid())
+  problemId   String
+  code        String
+  languageId  String
+  status      submissionStatus
+  createdAt   DateTime         @default(now())
+  createdById String
+  createdBy   User             @relation(fields: [createdById], references: [id])
+}
+
+enum difficultyLevel {
+  Basic
+  Easy
+  Medium
+  Hard
+}
+
+enum submissionStatus {
+  Accepted
+  Rejected
+  Pending
+}

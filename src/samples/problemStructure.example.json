@@ -1,0 +1,27 @@
+{
+	"title": "problem titile here",
+	"functionName": "functionName",
+	"description": "description here",
+	"parameters": [
+		{
+			"name": "arr1",
+			"baseType": "int",
+			"derivedType": "",
+			"category": "base",
+			"description": "description here"
+		},
+		{
+			"name": "arr",
+			"baseType": "int",
+			"derivedType": "Array<int>",
+			"category": "derived",
+			"description": "description here"
+		}
+	],
+	"returnType": {
+		"baseType": "int",
+		"derivedType": "",
+		"category": "base",
+		"description": "description here"
+	}
+}
