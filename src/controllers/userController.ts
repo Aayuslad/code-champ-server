@@ -41,6 +41,9 @@ export async function signupUser(req: Request, res: Response) {
 			userName,
 			password,
 		});
+		if (parsed.error?.issues[0]?.message) {
+			return res.status(422).json({ message: parsed.error?.issues[0]?.message });
+		}
 		if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
 
 		const emailExists = await prisma.user.findUnique({ where: { email } });
@@ -227,6 +230,9 @@ export async function sendPasswordResetOTP(req: Request, res: Response) {
 		}
 
 		const parsed = sendPasswordResetOTPShema.safeParse({ email });
+		if (parsed.error?.issues[0]?.message) {
+			return res.status(422).json({ message: parsed.error?.issues[0]?.message });
+		}
 		if (!parsed.success) return res.status(422).json({ message: "Invalid email" });
 
 		const user = await prisma.user.findFirst({ where: { email } });
