@@ -87,6 +87,7 @@ var prisma = new import_client.PrismaClient();
 var otpLength = 6;
 var PEPPER = process.env.BCRYPT_PEPPER;
 async function signupUser(req, res) {
+  var _a, _b, _c, _d;
   const { email, userName, password } = req.body;
   try {
     if (req.session.signupEmail && !email && !userName && !password) {
@@ -104,6 +105,9 @@ async function signupUser(req, res) {
       userName,
       password
     });
+    if ((_b = (_a = parsed.error) == null ? void 0 : _a.issues[0]) == null ? void 0 : _b.message) {
+      return res.status(422).json({ message: (_d = (_c = parsed.error) == null ? void 0 : _c.issues[0]) == null ? void 0 : _d.message });
+    }
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const emailExists = await prisma.user.findUnique({ where: { email } });
     if (emailExists) {
@@ -237,6 +241,7 @@ async function signoutUser(req, res) {
   return res.json({ message: "signed out" });
 }
 async function sendPasswordResetOTP(req, res) {
+  var _a, _b, _c, _d;
   const { email } = req.body;
   try {
     if (req.session.passwordResetEmail && !email) {
@@ -250,6 +255,9 @@ async function sendPasswordResetOTP(req, res) {
       });
     }
     const parsed = import_code_champ_common.sendPasswordResetOTPShema.safeParse({ email });
+    if ((_b = (_a = parsed.error) == null ? void 0 : _a.issues[0]) == null ? void 0 : _b.message) {
+      return res.status(422).json({ message: (_d = (_c = parsed.error) == null ? void 0 : _c.issues[0]) == null ? void 0 : _d.message });
+    }
     if (!parsed.success) return res.status(422).json({ message: "Invalid email" });
     const user = await prisma.user.findFirst({ where: { email } });
     if (!user) return res.status(400).json({ message: "Account does not exist with this email" });
@@ -1062,7 +1070,7 @@ async function submitSolution(req, res) {
         createdById: ((_a = req.user) == null ? void 0 : _a.id) || ""
       }
     });
-    const response = await import_axios.default.post("http://localhost:3000/submit-batch-task", {
+    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
       submissionId: submission.id,
       callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
       languageId,
@@ -1088,8 +1096,7 @@ async function checkBatchSubmission(req, res) {
   var _a;
   try {
     const { taskId, problemId } = req.params;
-    const result = await import_axios.default.get(`http://localhost:3000/batch-task-status/${taskId}`);
-    console.log(result.data);
+    const result = await import_axios.default.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
     const editedResult = {
       ...result.data,
       problemId,
@@ -1147,6 +1154,7 @@ var problemRouter_default = problemRouter;
 // src/index.ts
 var import_cors = __toESM(require("cors"));
 var import_express_session = __toESM(require("express-session"));
+var import_morgan = __toESM(require("morgan"));
 var app = (0, import_express3.default)();
 var PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
@@ -1161,6 +1169,7 @@ app.use(import_express3.default.json());
 app.use((0, import_cookie_parser.default)());
 app.disable("x-powerd-by");
 app.use(import_express3.default.urlencoded({ extended: true }));
+app.use((0, import_morgan.default)("tiny"));
 app.use(
   (0, import_express_session.default)({
     secret: process.env.SESSION_SECRET,
