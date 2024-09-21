@@ -22,7 +22,8 @@ export function generateSubmissionCode(
 
 const generateCppSubmissionCode = (structure: FunctionStructureType, testCase: TestCaseType, solutionCode: string) => {
     let submissionCode = `
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
 using namespace std;
 
 {solution_code}
