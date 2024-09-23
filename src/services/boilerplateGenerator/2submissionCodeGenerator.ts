@@ -1,4 +1,4 @@
-import { FunctionStructureType, TestCaseType } from "@repo/common/zod";
+import { FunctionStructureType, TestCaseType } from "@aayushlad/code-champ-common";
 import { derivedTypes } from "./derivedTypes";
 import { baseTypes } from "./baseTypes";
 

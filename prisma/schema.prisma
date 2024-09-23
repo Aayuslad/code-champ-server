@@ -34,11 +34,13 @@ model Problem {
   description         String          @db.VarChar(1000)
   functionStructure   String          @db.VarChar(1000)
   boilerplateCode     String
+  submissionCode      String
   sampleTestCasesKey  String // URL to the sample test cases JSON in S3
   testCasesKey        String // URL to the test cases JSON in S3
   constraints         Constraint[]
   topicTags           TopicTag[]
   hints               Hint[]
+  testCasesCount      Int             @default(0)
   likeCount           Int             @default(0)
   submissionCount     Int             @default(0)
   acceptedSubmissions Int             @default(0)

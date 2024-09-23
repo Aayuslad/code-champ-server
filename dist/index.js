@@ -374,8 +374,17 @@ var userRoutes_default = userRouter;
 var import_express2 = require("express");
 
 // src/controllers/problemController.ts
-var import_client4 = require("@prisma/client");
 var import_code_champ_common2 = require("@aayushlad/code-champ-common");
+var import_client4 = require("@prisma/client");
+var import_axios = __toESM(require("axios"));
+
+// src/config/languageIdmappings.ts
+var idToLanguageMappings = {
+  1: "python3",
+  2: "cpp",
+  3: "java",
+  4: "c"
+};
 
 // src/helper/generateUniqueSlug.ts
 var import_client3 = require("@prisma/client");
@@ -582,7 +591,7 @@ var derivedTypes = {
 // src/services/boilerplateGenerator/templates.ts
 var templates = {
   python3: "def {function_name}({params}) -> {return_type}:\n    # Your code here",
-  java: "public {return_type} {function_name}({params}) {\n    // Your code here\n}",
+  java: "public static {return_type} {function_name}({params}) {\n    // Your code here\n}",
   cpp: "{return_type} {function_name}({params}) {\n    // Your code here\n}",
   c: "{return_type} {function_name}({params}) {\n    // Your code here\n}"
 };
@@ -653,22 +662,83 @@ var generateJavaBoilerplate = (structure) => {
   return boilerplate;
 };
 
-// src/services/boilerplateGenerator/2submissionCodeGenerator.ts
-function generateSubmissionCode(structure, testCase, solutionCode, languageId) {
-  switch (languageId) {
-    case 1:
-      return generateCSubmissionCode(structure, testCase, solutionCode);
-    case 2:
-      return generateCppSubmissionCode(structure, testCase, solutionCode);
-    case 3:
-      return generateJavaSubmissionCode(structure, testCase, solutionCode);
-    case 4:
-      return generatePython3SubmissionCode(structure, testCase, solutionCode);
-  }
+// src/services/boilerplateGenerator/submissionCodeGenerator.ts
+function generateSubmissionCode(structure) {
+  return {
+    c: generateCSubmissionCode(structure),
+    cpp: generateCppSubmissionCode(structure),
+    java: generateJavaSubmissionCode(structure),
+    python3: generatePython3SubmissionCode(structure)
+  };
 }
-var generateCppSubmissionCode = (structure, testCase, solutionCode) => {
+var generateCSubmissionCode = (structure) => {
   let submissionCode = `
-#include <bits/stdc++.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+{solution_code}
+
+int main() {
+	{decl_init}
+
+	{ret_type} result = {func_name}({args});
+
+	{print_result}
+
+	return 0;
+}`;
+  const declInit = structure.parameters.map((p) => {
+    const bType = baseTypes[p.baseType].c;
+    if (p.category === "derived" && p.derivedType) {
+      const dType = derivedTypes[p.derivedType].c;
+      const type = dType.replace("{baseType}", bType);
+      if (p.derivedType.includes("Array")) {
+        const sizeDecl = `int ${p.name}_size;`;
+        const sizeInit = `scanf("%d", &${p.name}_size);`;
+        const arrDecl = `${type} ${p.name} = malloc(${p.name}_size * sizeof(${bType}));`;
+        const arrInit = `for (int i = 0; i < ${p.name}_size; i++) { scanf("%d", &${p.name}[i]); }`;
+        return `${sizeDecl}
+	${sizeInit}
+	${arrDecl}
+	${arrInit}`;
+      } else {
+        return `${type} ${p.name};
+scanf("%d", &${p.name});`;
+      }
+    } else {
+      return `${bType} ${p.name};
+scanf("%d", &${p.name});`;
+    }
+  }).join("\n	");
+  submissionCode = submissionCode.replace("{decl_init}", declInit);
+  const retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].c.replace("{baseType}", baseTypes[structure.returnType.baseType].c) : baseTypes[structure.returnType.baseType].c;
+  submissionCode = submissionCode.replace("{ret_type}", retType);
+  submissionCode = submissionCode.replace("{func_name}", structure.functionName);
+  submissionCode = submissionCode.replace("{args}", structure.parameters.map((p) => p.name).join(", "));
+  if (structure.returnType.category === "base" && structure.returnType.baseType) {
+    submissionCode = submissionCode.replace("{print_result}", 'printf("%d", result);');
+  } else {
+    let printResult = "";
+    if (structure.returnType.derivedType == "Array") {
+      printResult = `
+			for (int i = 0; i < sizeof(result) / sizeof(result[0]); i++) {
+				printf("%d ", result[i]);
+			}
+			printf("\\n");
+			`;
+    } else {
+      printResult = `
+			printf("%d\\n", result);
+			`;
+    }
+    submissionCode = submissionCode.replace("{print_result}", printResult);
+  }
+  return submissionCode;
+};
+var generateCppSubmissionCode = (structure) => {
+  let submissionCode = `
+#include <iostream>
+#include <vector>
 using namespace std;
 
 {solution_code}
@@ -682,20 +752,29 @@ int main() {
 
 	return 0;
 }`;
-  submissionCode = submissionCode.replace("{solution_code}", solutionCode);
-  const declInit = structure.parameters.map((p, index) => {
-    var _a, _b;
+  const declInit = structure.parameters.map((p) => {
     const bType = baseTypes[p.baseType].cpp;
     if (p.category === "derived" && p.derivedType) {
       const dType = derivedTypes[p.derivedType].cpp;
       const type = dType.replace("{baseType}", bType);
       if (p.derivedType.includes("Array")) {
-        return `${type} ${p.name} = {${(_a = testCase.input[index]) == null ? void 0 : _a.value}};`;
+        const sizeDecl = `int ${p.name}_size;`;
+        const sizeInit = `cin >> ${p.name}_size;`;
+        const arrDecl = `${type} ${p.name}(${p.name}_size);`;
+        const arrInit = `for (int i = 0; i < ${p.name}_size; i++) { cin >> ${p.name}[i]; }`;
+        return `${sizeDecl}
+	${sizeInit}
+	${arrDecl}
+	${arrInit}`;
+      } else {
+        return `${type} ${p.name};
+cin >> ${p.name};`;
       }
     } else {
-      return `${bType} ${p.name} = ${(_b = testCase.input[index]) == null ? void 0 : _b.value};`;
+      return `${bType} ${p.name};
+cin >> ${p.name};`;
     }
-  }).join("\n");
+  }).join("\n	");
   submissionCode = submissionCode.replace("{decl_init}", declInit);
   const retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].cpp.replace(
     "{baseType}",
@@ -722,94 +801,91 @@ int main() {
     }
     submissionCode = submissionCode.replace("{print_result}", printResult);
   }
-  const base64SubmissionCode = Buffer.from(submissionCode).toString("base64");
-  return base64SubmissionCode;
+  return submissionCode;
 };
-var generateCSubmissionCode = (structure, testCase, solutionCode) => {
+var generatePython3SubmissionCode = (structure) => {
   let submissionCode = `
-#include <stdio.h>
-#include <stdlib.h>
-
 {solution_code}
 
-int main() {
+if __name__ == "__main__":
 	{decl_init}
 
-	{ret_type} result = {func_name}({args});
+	result = {func_name}({args})
 
 	{print_result}
-
-	return 0;
-}`;
-  submissionCode = submissionCode.replace("{solution_code}", solutionCode);
-  const declInit = structure.parameters.map((p, index) => {
-    var _a, _b;
-    const bType = baseTypes[p.baseType].c;
+`;
+  const declInit = structure.parameters.map((p) => {
+    const bType = baseTypes[p.baseType].python3;
     if (p.category === "derived" && p.derivedType) {
-      const dType = derivedTypes[p.derivedType].c;
+      const dType = derivedTypes[p.derivedType].python3;
       const type = dType.replace("{baseType}", bType);
       if (p.derivedType.includes("Array")) {
-        return `${type} ${p.name}[] = {${(_a = testCase.input[index]) == null ? void 0 : _a.value}};`;
+        return `${p.name} = list(map(${bType}, input().split()))`;
+      } else {
+        return `${p.name} = ${type}(input())`;
       }
     } else {
-      return `${bType} ${p.name} = ${(_b = testCase.input[index]) == null ? void 0 : _b.value};`;
+      return `${p.name} = ${bType}(input())`;
     }
-  }).join("\n");
+  }).join("\n	");
   submissionCode = submissionCode.replace("{decl_init}", declInit);
-  const retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].c.replace("{baseType}", baseTypes[structure.returnType.baseType].c) : baseTypes[structure.returnType.baseType].c;
-  submissionCode = submissionCode.replace("{ret_type}", retType);
   submissionCode = submissionCode.replace("{func_name}", structure.functionName);
   submissionCode = submissionCode.replace("{args}", structure.parameters.map((p) => p.name).join(", "));
   if (structure.returnType.category === "base" && structure.returnType.baseType) {
-    submissionCode = submissionCode.replace("{print_result}", 'printf("%d", result);');
+    submissionCode = submissionCode.replace("{print_result}", `print(result, end="")`);
   } else {
     let printResult = "";
     if (structure.returnType.derivedType == "Array") {
       printResult = `
-			for (int i = 0; i < sizeof(result) / sizeof(result[0]); i++) {
-				printf("%d ", result[i]);
-			}
-			printf("\\n");
+	print(' '.join(map(str, result)))
 			`;
     } else {
       printResult = `
-			printf("%d\\n", result);
+	print(result)
 			`;
     }
     submissionCode = submissionCode.replace("{print_result}", printResult);
   }
-  const base64SubmissionCode = Buffer.from(submissionCode).toString("base64");
-  return base64SubmissionCode;
+  return submissionCode;
 };
-var generateJavaSubmissionCode = (structure, testCase, solutionCode) => {
+var generateJavaSubmissionCode = (structure) => {
   let submissionCode = `
 import java.util.*;
+import java.io.*;
 
 public class Solution {
 	{solution_code}
 
 	public static void main(String[] args) {
+		Scanner scanner = new Scanner(System.in);
 		{decl_init}
 
 		{ret_type} result = {func_name}({args});
 
 		{print_result}
+
+		scanner.close();
 	}
 }`;
-  submissionCode = submissionCode.replace("{solution_code}", solutionCode);
-  const declInit = structure.parameters.map((p, index) => {
-    var _a, _b;
+  const declInit = structure.parameters.map((p) => {
     const bType = baseTypes[p.baseType].java;
     if (p.category === "derived" && p.derivedType) {
       const dType = derivedTypes[p.derivedType].java;
       const type = dType.replace("{baseType}", bType);
       if (p.derivedType.includes("Array")) {
-        return `${type} ${p.name} = new ${bType}[]{${(_a = testCase.input[index]) == null ? void 0 : _a.value}};`;
+        const sizeDecl = `int ${p.name}Size = scanner.nextInt();`;
+        const arrDecl = `${type} ${p.name} = new ${bType}[${p.name}Size];`;
+        const arrInit = `for (int i = 0; i < ${p.name}Size; i++) { ${p.name}[i] = scanner.next${bType.charAt(0).toUpperCase() + bType.slice(1)}(); }`;
+        return `${sizeDecl}
+		${arrDecl}
+		${arrInit}`;
+      } else {
+        return `${type} ${p.name} = scanner.next${bType.charAt(0).toUpperCase() + bType.slice(1)}();`;
       }
     } else {
-      return `${bType} ${p.name} = ${(_b = testCase.input[index]) == null ? void 0 : _b.value};`;
+      return `${bType} ${p.name} = scanner.next${bType.charAt(0).toUpperCase() + bType.slice(1)}();`;
     }
-  }).join("\n");
+  }).join("\n		");
   submissionCode = submissionCode.replace("{decl_init}", declInit);
   const retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].java.replace(
     "{baseType}",
@@ -836,55 +912,27 @@ public class Solution {
     }
     submissionCode = submissionCode.replace("{print_result}", printResult);
   }
-  const base64SubmissionCode = Buffer.from(submissionCode).toString("base64");
-  return base64SubmissionCode;
+  return submissionCode;
 };
-var generatePython3SubmissionCode = (structure, testCase, solutionCode) => {
-  let submissionCode = `
-{solution_code}
 
-if __name__ == "__main__":
-	{decl_init}
-
-	result = {func_name}({args})
-
-	{print_result}
-`;
-  submissionCode = submissionCode.replace("{solution_code}", solutionCode);
-  const declInit = structure.parameters.map((p, index) => {
+// src/services/stdinGenerator.ts
+var stdinGenerator = (functionStructure, testCase) => {
+  const stdin = functionStructure.parameters.map((parameter, index) => {
     var _a, _b;
-    if (p.category === "derived" && p.derivedType) {
-      if (p.derivedType.includes("Array")) {
-        return `${p.name} = [${(_a = testCase.input[index]) == null ? void 0 : _a.value}]`;
+    if (parameter.category === "derived" && parameter.derivedType) {
+      if (parameter.derivedType === "Array") {
+        const stdin2 = (_a = testCase == null ? void 0 : testCase.input[index]) == null ? void 0 : _a.value.split(",").map((item) => item.trim()).join("\n");
+        return stdin2;
       }
     } else {
-      return `${p.name} = ${(_b = testCase.input[index]) == null ? void 0 : _b.value}`;
+      return `${(_b = testCase == null ? void 0 : testCase.input[index]) == null ? void 0 : _b.value}`;
     }
   }).join("\n");
-  submissionCode = submissionCode.replace("{decl_init}", declInit);
-  submissionCode = submissionCode.replace("{func_name}", structure.functionName);
-  submissionCode = submissionCode.replace("{args}", structure.parameters.map((p) => p.name).join(", "));
-  if (structure.returnType.category === "base" && structure.returnType.baseType) {
-    submissionCode = submissionCode.replace("{print_result}", "print(result)");
-  } else {
-    let printResult = "";
-    if (structure.returnType.derivedType == "Array") {
-      printResult = `
-	print(' '.join(map(str, result)))
-			`;
-    } else {
-      printResult = `
-	print(result)
-			`;
-    }
-    submissionCode = submissionCode.replace("{print_result}", printResult);
-  }
-  const base64SubmissionCode = Buffer.from(submissionCode).toString("base64");
-  return base64SubmissionCode;
+  const encoded = Buffer.from(stdin).toString("base64");
+  return encoded;
 };
 
 // src/controllers/problemController.ts
-var import_axios = __toESM(require("axios"));
 var prisma4 = new import_client4.PrismaClient();
 async function contributeProblem(req, res) {
   var _a;
@@ -909,6 +957,7 @@ async function contributeProblem(req, res) {
       uploadJsonToS3(`problem-test-cases/${slug}/testCases.json`, testCases)
     ]);
     const boilerplateCode = generateBoilerplate(functionStructure);
+    const submissionCode = generateSubmissionCode(functionStructure);
     const topicTagIdsToAdd = await Promise.all(
       topicTags.filter((tag) => tag.trim()).map(async (tag) => {
         const existingTag = await prisma4.topicTag.findFirst({ where: { content: tag } });
@@ -930,6 +979,8 @@ async function contributeProblem(req, res) {
         sampleTestCasesKey: `problem-test-cases/${slug}/sampleTestCases.json`,
         testCasesKey: `problem-test-cases/${slug}/testCases.json`,
         boilerplateCode: JSON.stringify(boilerplateCode),
+        submissionCode: JSON.stringify(submissionCode),
+        testCasesCount: testCases.length || 0,
         functionStructure: JSON.stringify(functionStructure),
         constraints: {
           create: constraints.map((constraint) => ({
@@ -1048,35 +1099,46 @@ async function submitSolution(req, res) {
   var _a;
   try {
     const parsed = import_code_champ_common2.sumitSolutionSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
+    if (!parsed.success) {
+      return res.status(422).json({ message: "Invalid data" });
+    }
     const { problemId, languageId, solutionCode } = parsed.data;
     const problem = await prisma4.problem.findFirst({
       where: { id: problemId },
       select: {
         id: true,
         testCasesKey: true,
-        functionStructure: true
+        functionStructure: true,
+        submissionCode: true
       }
     });
-    if (!problem) return res.status(404).json({ message: "Problem not found" });
+    if (!problem) {
+      return res.status(404).json({ message: "Problem not found" });
+    }
     const testCases = JSON.parse(await getObjectFromS3(problem.testCasesKey));
     const functionStructure = JSON.parse(problem.functionStructure);
+    const parsedSubmissionCode = JSON.parse(problem.submissionCode);
+    const languageKey = idToLanguageMappings[languageId];
+    const solutionTemplate = parsedSubmissionCode[languageKey];
+    const finalCode = solutionTemplate.replace("{solution_code}", solutionCode);
+    const encodedFinalCode = Buffer.from(finalCode).toString("base64");
     const submission = await prisma4.submission.create({
       data: {
         problemId,
         code: solutionCode,
         languageId: languageId.toString(),
         status: "Pending",
-        createdById: ((_a = req.user) == null ? void 0 : _a.id) || ""
+        createdById: ((_a = req.user) == null ? void 0 : _a.id) ?? ""
       }
     });
     const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
       submissionId: submission.id,
-      callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
+      callbackUrl: "https://code-champ-webhook-handler.vercel.app/submit-task-callback",
       languageId,
+      code: encodedFinalCode,
       tasks: testCases.map((testCase, index) => ({
         id: index,
-        code: generateSubmissionCode(functionStructure, testCase, solutionCode, languageId),
+        stdin: stdinGenerator(functionStructure, testCase),
         expectedOutput: testCase.output,
         inputs: JSON.stringify(testCase.input)
       }))
@@ -1086,8 +1148,8 @@ async function submitSolution(req, res) {
       taskId: response.data.batchTaskId
     });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({
+    console.error(err);
+    return res.status(500).json({
       message: "Internal Server Error"
     });
   }
@@ -1128,6 +1190,7 @@ async function getSubmissions(req, res) {
       },
       select: {
         id: true,
+        code: true,
         languageId: true,
         status: true,
         createdAt: true
