@@ -34,7 +34,7 @@ int main() {
             const bType = baseTypes[p.baseType].c;
             if (p.category === "derived" && p.derivedType) {
                 const dType = derivedTypes[p.derivedType].c;
-                const type = dType.replace("{baseType}", bType);
+                const type = dType.replace("base_type", bType);
 
                 if (p.derivedType.includes("Array")) {
                     const sizeDecl = `int ${p.name}_size;`;
@@ -56,7 +56,7 @@ int main() {
 
     const retType =
         structure.returnType.category === "derived" && structure.returnType.derivedType
-            ? derivedTypes[structure.returnType.derivedType].c.replace("{baseType}", baseTypes[structure.returnType.baseType].c)
+            ? derivedTypes[structure.returnType.derivedType].c.replace("baseType", baseTypes[structure.returnType.baseType].c)
             : baseTypes[structure.returnType.baseType].c;
 
     submissionCode = submissionCode.replace("{ret_type}", retType);
@@ -110,7 +110,7 @@ int main() {
             const bType = baseTypes[p.baseType].cpp;
             if (p.category === "derived" && p.derivedType) {
                 const dType = derivedTypes[p.derivedType].cpp;
-                const type = dType.replace("{baseType}", bType);
+                const type = dType.replace("base_type", bType);
 
                 if (p.derivedType.includes("Array")) {
                     const sizeDecl = `int ${p.name}_size;`;
@@ -167,14 +167,16 @@ int main() {
 
 const generatePython3SubmissionCode = (structure: FunctionStructureType) => {
     let submissionCode = `
+from typing import List
+
 {solution_code}
 
 if __name__ == "__main__":
-	{decl_init}
+    {decl_init}
 
-	result = {func_name}({args})
+    result = {func_name}({args})
 
-	{print_result}
+    {print_result}
 `;
 
     // adding variable declaration and initialization for function parameters
@@ -183,10 +185,14 @@ if __name__ == "__main__":
             const bType = baseTypes[p.baseType].python3;
             if (p.category === "derived" && p.derivedType) {
                 const dType = derivedTypes[p.derivedType].python3;
-                const type = dType.replace("{baseType}", bType);
+                const type = dType.replace("base_type", bType);
 
                 if (p.derivedType.includes("Array")) {
-                    return `${p.name} = list(map(${bType}, input().split()))`;
+                    return `
+    ${p.name}_size = int(input())
+    ${p.name} = []
+    for _ in range(${p.name}_size):
+        ${p.name}.append(int(input()))`;
                 } else {
                     return `${p.name} = ${type}(input())`;
                 }
@@ -194,7 +200,7 @@ if __name__ == "__main__":
                 return `${p.name} = ${bType}(input())`;
             }
         })
-        .join("\n\t");
+        .join("\n");
 
     submissionCode = submissionCode.replace("{decl_init}", declInit);
     submissionCode = submissionCode.replace("{func_name}", structure.functionName);
@@ -246,7 +252,7 @@ public class Solution {
             const bType = baseTypes[p.baseType].java;
             if (p.category === "derived" && p.derivedType) {
                 const dType = derivedTypes[p.derivedType].java;
-                const type = dType.replace("{baseType}", bType);
+                const type = dType.replace("base_type", bType);
 
                 if (p.derivedType.includes("Array")) {
                     const sizeDecl = `int ${p.name}Size = scanner.nextInt();`;
@@ -276,20 +282,20 @@ public class Solution {
     submissionCode = submissionCode.replace("{func_name}", structure.functionName);
     submissionCode = submissionCode.replace("{args}", structure.parameters.map(p => p.name).join(", "));
     if (structure.returnType.category === "base" && structure.returnType.baseType) {
-        submissionCode = submissionCode.replace("{print_result}", "System.out.println(result);");
+        submissionCode = submissionCode.replace("{print_result}", "System.out.print(result);");
     } else {
         let printResult = "";
 
         if (structure.returnType.derivedType == "Array") {
             printResult = `
-			for (int i = 0; i < result.length; i++) {
+			for (int i = 0; i < result.length; i++) {   
 				System.out.print(result[i] + " ");
 			}
 			System.out.println();
 			`;
         } else {
             printResult = `
-			System.out.println(result);
+			System.out.print(result);
 			`;
         }
 
