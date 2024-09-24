@@ -228,7 +228,7 @@ export async function submitSolution(req: Request, res: Response) {
             },
         });
 
-        const response = await axios.post("http://localhost:3000/submit-batch-task", {
+        const response = await axios.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
             submissionId: submission.id,
             callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
             languageId: languageId,
@@ -256,7 +256,7 @@ export async function submitSolution(req: Request, res: Response) {
 export async function checkBatchSubmission(req: Request, res: Response) {
     try {
         const { taskId, problemId } = req.params;
-        const result = await axios.get(`http://localhost:3000/batch-task-status/${taskId}`);
+        const result = await axios.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
 
         console.log(result.data);
 
