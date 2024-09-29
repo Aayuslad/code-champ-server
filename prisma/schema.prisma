@@ -23,6 +23,8 @@ model User {
   Problem Problem[]
 
   Submission Submission[]
+
+  OngoingProblem OngoingProblem[]
 }
 
 model Problem {
@@ -48,6 +50,14 @@ model Problem {
   createdAt           DateTime        @default(now())
   createdById         String
   createdBy           User            @relation(fields: [createdById], references: [id])
+}
+
+model OngoingProblem {
+  id        String @id @default(uuid())
+  problemId String
+  userId    String
+  solutions String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Constraint {

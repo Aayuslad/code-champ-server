@@ -6,8 +6,9 @@ import {
     getSubmissions,
     submitSolution,
     checkBatchSubmission,
+    putOngoingProblem,
+    getOngoingProblem,
 } from "../controllers/problemController";
-import axios from "axios";
 import { authMiddleware } from "../middlewares/authMiddleware";
 const problemRouter = Router();
 
@@ -16,6 +17,8 @@ problemRouter.post("/contribute", authMiddleware, contributeProblem);
 problemRouter.post("/submit", authMiddleware, submitSolution);
 problemRouter.get("/submission/:problemId", authMiddleware, getSubmissions);
 problemRouter.get("/check/:taskId/:problemId", authMiddleware, checkBatchSubmission);
+problemRouter.put("/ongoing-problem", authMiddleware, putOngoingProblem);
+problemRouter.get("/ongoing-problem/:problemId/:userId", authMiddleware, getOngoingProblem);
 problemRouter.get("/:id", getProblem);
 
 export default problemRouter;

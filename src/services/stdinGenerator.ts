@@ -11,7 +11,7 @@ export const stdinGenerator = (functionStructure: FunctionStructureType, testCas
                         const arraySize = values.length;
                         return `${arraySize}\n${values.join("\n")}\n`;
                     }
-                    return "";
+                    return "0\n";
                 }
             } else {
                 return `${testCase?.input[index]?.value}`;
