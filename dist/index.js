@@ -22160,6 +22160,7 @@ async function putOngoingProblem(req, res) {
     }
     return res.sendStatus(200);
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -22213,7 +22214,7 @@ async function submitSolution(req, res) {
         createdById: ((_a = req.user) == null ? void 0 : _a.id) || ""
       }
     });
-    const response = await import_axios.default.post("http://localhost:3000/submit-batch-task", {
+    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
       submissionId: submission.id,
       callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
       languageId,
@@ -22240,7 +22241,7 @@ async function checkBatchSubmission(req, res) {
   var _a;
   try {
     const { taskId, problemId } = req.params;
-    const result = await import_axios.default.get(`http://localhost:3000/batch-task-status/${taskId}`);
+    const result = await import_axios.default.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
     const editedResult = {
       ...result.data,
       problemId,
