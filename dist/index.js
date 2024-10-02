@@ -21993,7 +21993,7 @@ async function contributeProblem(req, res) {
     const newProblem = await prisma4.problem.create({
       data: {
         title,
-        problemNumber: 2,
+        problemNumber: 3,
         slug,
         description,
         difficultyLevel,

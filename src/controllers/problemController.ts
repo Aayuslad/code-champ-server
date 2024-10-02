@@ -60,7 +60,7 @@ export async function contributeProblem(req: Request, res: Response) {
 		const newProblem = await prisma.problem.create({
 			data: {
 				title,
-				problemNumber: 2,
+				problemNumber: 4,
 				slug: slug,
 				description: description,
 				difficultyLevel: difficultyLevel,

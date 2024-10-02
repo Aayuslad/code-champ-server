@@ -9,7 +9,7 @@ export const stdinGenerator = (functionStructure: FunctionStructureType, testCas
                     if (stdin) {
                         const values = stdin.split(",").map(item => item.trim());
                         const arraySize = values.length;
-                        return `${arraySize}\n${values.join("\n")}\n`;
+                        return `${arraySize}\n${values.join(" ")}\n`;
                     }
                     return "0\n";
                 }
@@ -19,6 +19,5 @@ export const stdinGenerator = (functionStructure: FunctionStructureType, testCas
         })
         .join("\n");
 
-    const encoded = Buffer.from(stdin).toString("base64");
-    return encoded;
+    return stdin;
 };
