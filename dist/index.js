@@ -21941,7 +21941,7 @@ var stdinGenerator = (functionStructure, testCase) => {
           const values = stdin2.split(",").map((item) => item.trim());
           const arraySize = values.length;
           return `${arraySize}
-${values.join("\n")}
+${values.join(" ")}
 `;
         }
         return "0\n";
@@ -21950,8 +21950,7 @@ ${values.join("\n")}
       return `${(_b = testCase == null ? void 0 : testCase.input[index]) == null ? void 0 : _b.value}`;
     }
   }).join("\n");
-  const encoded = Buffer.from(stdin).toString("base64");
-  return encoded;
+  return stdin;
 };
 
 // src/controllers/problemController.ts
@@ -21993,7 +21992,7 @@ async function contributeProblem(req, res) {
     const newProblem = await prisma4.problem.create({
       data: {
         title,
-        problemNumber: 3,
+        problemNumber: 4,
         slug,
         description,
         difficultyLevel,
