@@ -43,24 +43,24 @@ export async function contributeProblem(req: Request, res: Response) {
 		const boilerplateCode = generateBoilerplate(functionStructure);
 		const submissionCode = generateSubmissionCode(functionStructure);
 
-		const topicTagIdsToAdd = await Promise.all(
-			topicTags
-				.filter((tag) => tag.trim())
-				.map(async (tag) => {
-					const existingTag = await prisma.topicTag.findFirst({ where: { content: tag } });
-					if (existingTag) {
-						return existingTag.id;
-					} else {
-						const newTag = await prisma.topicTag.create({ data: { content: tag } });
-						return newTag.id;
-					}
-				}),
-		);
+		const existingTags = await prisma.topicTag.findMany({
+			where: {
+				content: {
+					in: topicTags.map((tag) => tag.trim()),
+				},
+			},
+		});
+
+		if (existingTags.length !== topicTags.length) {
+			return res.status(400).json({
+				message: "One or more topic tags do not exist",
+			});
+		}
 
 		const newProblem = await prisma.problem.create({
 			data: {
 				title,
-				problemNumber: 4,
+				problemNumber: 3,
 				slug: slug,
 				description: description,
 				difficultyLevel: difficultyLevel,
@@ -76,7 +76,7 @@ export async function contributeProblem(req: Request, res: Response) {
 					})),
 				},
 				topicTags: {
-					connect: topicTagIdsToAdd.map((id) => ({ id })),
+					connect: existingTags.map((tag) => ({ id: tag.id })),
 				},
 				hints: {
 					create: hints.map((hint: string) => ({
@@ -102,8 +102,9 @@ export async function contributeProblem(req: Request, res: Response) {
 		});
 	}
 }
-
 export async function getFeedProblems(req: Request, res: Response) {
+	const { userId } = req.query;
+
 	try {
 		const problems = await prisma.problem.findMany({
 			take: 50,
@@ -117,12 +118,33 @@ export async function getFeedProblems(req: Request, res: Response) {
 				difficultyLevel: true,
 				submissionCount: true,
 				acceptedSubmissions: true,
+				topicTags: {
+					select: {
+						content: true,
+					},
+				},
 			},
 		});
+
+		let solvedProblems: { problemId: string }[] = [];
+
+		if (userId && userId !== "undefined") {
+			solvedProblems = await prisma.submission.findMany({
+				where: {
+					problemId: {
+						in: problems.map((problem) => problem.id),
+					},
+					createdById: userId as string,
+					status: "Accepted",
+				},
+			});
+		}
 
 		const editedProblems = problems.map((problem) => {
 			const acceptanceRate =
 				problem.submissionCount > 0 ? ((problem.acceptedSubmissions / problem.submissionCount) * 100).toFixed(2) : "0.00";
+
+			const status = !!solvedProblems.find((solvedProblem) => solvedProblem.problemId === problem.id);
 
 			return {
 				id: problem.id,
@@ -130,6 +152,8 @@ export async function getFeedProblems(req: Request, res: Response) {
 				title: problem.title,
 				difficulty: problem.difficultyLevel,
 				acceptanceRate: `${acceptanceRate}%`,
+				topicTags: problem.topicTags.map((tag) => tag.content),
+				isSolved: status,
 			};
 		});
 
@@ -178,7 +202,7 @@ export async function getProblem(req: Request, res: Response) {
 
 		let solutions = "";
 
-		if (userId) {
+		if (userId && userId !== "undefined") {
 			const ongoingProblem = await prisma.ongoingProblem.findFirst({
 				where: {
 					userId: userId,
@@ -249,9 +273,6 @@ export async function putOngoingProblem(req: Request, res: Response) {
 
 		return res.sendStatus(200);
 	} catch (err) {
-		console.log(err);
-		
-
 		res.status(500).json({
 			message: "Internal Server Error",
 		});
@@ -325,10 +346,21 @@ export async function submitSolution(req: Request, res: Response) {
 			})),
 		});
 
-		return res.status(200).json({
+		res.status(200).json({
 			message: "Solution submitted successfully",
 			taskId: response.data.batchTaskId,
 		});
+
+		await prisma.problem.update({
+			where: { id: problemId },
+			data: {
+				submissionCount: {
+					increment: 1,
+				},
+			},
+		});
+
+		return;
 	} catch (err) {
 		console.log(err);
 		res.status(500).json({

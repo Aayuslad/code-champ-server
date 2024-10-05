@@ -14,16 +14,13 @@ datasource db {
 }
 
 model User {
-  id         String  @id @default(uuid())
-  userName   String  @unique
-  email      String  @unique
-  password   String
-  profileImg String?
-
-  Problem Problem[]
-
-  Submission Submission[]
-
+  id             String           @id @default(uuid())
+  userName       String           @unique
+  email          String           @unique
+  password       String
+  profileImg     String?
+  Problem        Problem[]
+  Submission     Submission[]
   OngoingProblem OngoingProblem[]
 }
 
