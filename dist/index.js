@@ -21293,643 +21293,6 @@ var uploadJsonToS3 = async (key, jsonData) => {
   }
 };
 
-// src/services/boilerplateGenerator/baseTypes.ts
-var baseTypes = {
-  int: {
-    python3: "int",
-    java: "int",
-    cpp: "int",
-    c: "int"
-  },
-  short: {
-    python3: "int",
-    java: "short",
-    cpp: "short",
-    c: "short"
-  },
-  long: {
-    python3: "int",
-    java: "long",
-    cpp: "long",
-    c: "long"
-  },
-  float: {
-    python3: "float",
-    java: "float",
-    cpp: "float",
-    c: "float"
-  },
-  double: {
-    python3: "float",
-    java: "double",
-    cpp: "double",
-    c: "double"
-  },
-  char: {
-    python3: "str",
-    java: "char",
-    cpp: "char",
-    c: "char"
-  },
-  boolean: {
-    python3: "bool",
-    java: "boolean",
-    cpp: "bool",
-    c: "bool"
-  }
-};
-
-// src/services/boilerplateGenerator/derivedTypes.ts
-var derivedTypes = {
-  String: {
-    python3: "str",
-    java: "String",
-    cpp: "string",
-    c: "char*"
-  },
-  Array: {
-    python3: "List[base_type]",
-    java: "base_type[]",
-    cpp: "vector<base_type>",
-    c: "base_type*"
-  },
-  LinkedList: {
-    python3: "collections.deque[base_type]",
-    // python3’s deque can be used as a linked list
-    java: "LinkedList<base_type>",
-    cpp: "list<base_type>",
-    // list in C++ is a doubly-linked list
-    c: "struct Node*"
-    // Linked list in C is typically implemented using a struct
-  },
-  Set: {
-    python3: "Set[base_type]",
-    // python3’s set is unordered
-    java: "HashSet<base_type>",
-    // HashSet is unordered, TreeSet is ordered
-    cpp: "set<base_type>",
-    // set is ordered; use unordered_set for unordered
-    c: "struct Set*"
-    // Custom implementation is typically needed in C
-  },
-  Map: {
-    python3: "Dict[key_type, value_type]",
-    // python3’s dict
-    java: "HashMap<key_type, value_type>",
-    // HashMap is unordered, TreeMap is ordered
-    cpp: "unordered_map<key_type, value_type>",
-    // unordered_map is common; use map for ordered
-    c: "struct Map*"
-    // Custom implementation is typically needed in C
-  },
-  Queue: {
-    python3: "collections.deque[base_type]",
-    // deque can be used as a queue
-    java: "Queue<base_type>",
-    // Queue is an interface; often implemented by LinkedList
-    cpp: "queue<base_type>",
-    // Standard queue in C++
-    c: "struct Queue*"
-    // Custom implementation is typically needed in C
-  },
-  Stack: {
-    python3: "List[base_type]",
-    // python3’s list can be used as a stack (LIFO)
-    java: "Stack<base_type>",
-    // Stack class is available in Java
-    cpp: "stack<base_type>",
-    // Standard stack in C++
-    c: "struct Stack*"
-    // Custom implementation is typically needed in C
-  },
-  TreeNode: {
-    python3: "TreeNode",
-    // Typically custom-defined in python3
-    java: "TreeNode<base_type>",
-    // Custom tree node class in Java
-    cpp: "TreeNode<base_type>",
-    // Custom tree node class in C++
-    c: "struct TreeNode*"
-    // Custom struct in C
-  },
-  GraphNode: {
-    python3: "GraphNode",
-    // Typically custom-defined in python3
-    java: "GraphNode<base_type>",
-    // Custom graph node class in Java
-    cpp: "GraphNode<base_type>",
-    // Custom graph node class in C++
-    c: "struct GraphNode*"
-    // Custom struct in C
-  }
-};
-
-// src/services/boilerplateGenerator/templates.ts
-var templates = {
-  python3: "def {function_name}({params}) -> {return_type}:\n    # Your code here",
-  java: "public static {return_type} {function_name}({params}) {\n    // Your code here\n}",
-  cpp: "{return_type} {function_name}({params}) {\n    // Your code here\n}",
-  c: "{return_type} {function_name}({params}) {\n    // Your code here\n}"
-};
-
-// src/services/boilerplateGenerator/typeModifires.ts
-var typeModifiers = {
-  unsigned: {
-    python3: "",
-    java: "",
-    cpp: "unsigned",
-    c: "unsigned"
-  },
-  short: {
-    python3: "",
-    java: "short",
-    // just "short" no "short int"
-    cpp: "short",
-    c: "short"
-  },
-  long: {
-    python3: "",
-    java: "long",
-    // just "long" no "long int"
-    cpp: "long",
-    c: "long"
-  },
-  longLong: {
-    python3: "",
-    java: "BigInteger",
-    // just "BigInteger" no "BigInteger int"
-    cpp: "long long",
-    c: "long long"
-  },
-  const: {
-    python3: "",
-    java: "final",
-    // "final int" no "final"
-    cpp: "const",
-    c: "const"
-  },
-  volatile: {
-    python3: "",
-    java: "",
-    cpp: "volatile",
-    c: "volatile"
-  }
-};
-var cFormatSpecifiers = {
-  int: "%d",
-  "unsigned int": "%u",
-  float: "%f",
-  double: "%lf",
-  char: "%c",
-  pointer: "%p",
-  "long int": "%ld",
-  "short int": "%hd",
-  "long long int": "%lld",
-  "unsigned long int": "%lu",
-  "unsigned long long int": "%llu",
-  "long double": "%Lf",
-  "unsigned short int": "%hu",
-  "unsigned int (hexadecimal)": "%x",
-  "unsigned int (octal)": "%o",
-  "string (char array)": "%s",
-  "scientific notation (float)": "%e",
-  "float (automatic selection)": "%g",
-  "int (similar to %d)": "%i",
-  "integer (stores number of characters printed)": "%n",
-  "short int (hexadecimal)": "%hx",
-  "short int (octal)": "%ho"
-};
-
-// src/services/boilerplateGenerator/boilerplateGenerator.ts
-function generateBoilerplate(structure) {
-  return {
-    c: generateCBoilerplate(structure),
-    cpp: generateCppBoilerplate(structure),
-    java: generateJavaBoilerplate(structure),
-    python3: generatePython3Boilerplate(structure)
-  };
-}
-var generateCBoilerplate = (structure) => {
-  let boilerplate = templates.c;
-  boilerplate = boilerplate.replace("{function_name}", structure.functionName);
-  const params = structure.parameters.map((param) => {
-    const base = baseTypes[param.baseType].c;
-    let type = param.derivedType ? derivedTypes[param.derivedType].c.replace("base_type", base) : base;
-    if (param.typeModifier) {
-      type = `${typeModifiers[param.typeModifier].cpp} ${type}`;
-    }
-    if (param.derivedType === "Array") {
-      return [`${type} ${param.name}`, `int ${param.name}_size`];
-    }
-    return `${type} ${param.name}`;
-  }).flat().join(", ");
-  boilerplate = boilerplate.replace("{params}", params);
-  const returnBase = baseTypes[structure.returnType.baseType].c;
-  const returnType = structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].c.replace("base_type", returnBase) : returnBase;
-  const finalReturnType = structure.returnType.typeModifier ? `${typeModifiers[structure.returnType.typeModifier].c} ${returnType}` : returnType;
-  boilerplate = boilerplate.replace("{return_type}", finalReturnType);
-  return boilerplate;
-};
-var generateCppBoilerplate = (structure) => {
-  let boilerplate = templates.cpp;
-  boilerplate = boilerplate.replace("{function_name}", structure.functionName);
-  const params = structure.parameters.map((param) => {
-    const base = baseTypes[param.baseType].cpp;
-    let type = param.derivedType ? derivedTypes[param.derivedType].cpp.replace("base_type", base) : base;
-    if (param.typeModifier) {
-      type = `${typeModifiers[param.typeModifier].cpp} ${type}`;
-    }
-    return `${type} ${param.name}`;
-  }).join(", ");
-  boilerplate = boilerplate.replace("{params}", params);
-  const returnBase = baseTypes[structure.returnType.baseType].cpp;
-  const returnType = structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].cpp.replace("base_type", returnBase) : returnBase;
-  const finalReturnType = structure.returnType.typeModifier ? `${typeModifiers[structure.returnType.typeModifier].cpp} ${returnType}` : returnType;
-  boilerplate = boilerplate.replace("{return_type}", finalReturnType);
-  return boilerplate;
-};
-var generatePython3Boilerplate = (structure) => {
-  let boilerplate = templates.python3;
-  boilerplate = boilerplate.replace("{function_name}", structure.functionName);
-  const params = structure.parameters.map((param) => {
-    const base = baseTypes[param.baseType].python3;
-    let type = param.derivedType ? derivedTypes[param.derivedType].python3.replace("base_type", base) : base;
-    if (param.typeModifier) {
-      type = `${typeModifiers[param.typeModifier].python3} ${type}`;
-    }
-    return `${param.name}: ${type}`;
-  }).join(", ");
-  boilerplate = boilerplate.replace("{params}", params);
-  const returnBase = baseTypes[structure.returnType.baseType].python3;
-  const returnType = structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].python3.replace("base_type", returnBase) : returnBase;
-  const finalReturnType = structure.returnType.typeModifier ? `${typeModifiers[structure.returnType.typeModifier].python3} ${returnType}` : returnType;
-  boilerplate = boilerplate.replace("{return_type}", finalReturnType);
-  return boilerplate;
-};
-var generateJavaBoilerplate = (structure) => {
-  let boilerplate = templates.java;
-  boilerplate = boilerplate.replace("{function_name}", structure.functionName);
-  const params = structure.parameters.map((param) => {
-    const base = baseTypes[param.baseType].java;
-    let type = param.derivedType ? derivedTypes[param.derivedType].java.replace("base_type", base) : base;
-    if (param.typeModifier) {
-      const typeModifier = typeModifiers[param.typeModifier].java;
-      returnType = ["short", "BigInteger", "long"].includes(typeModifier) ? typeModifier : `${typeModifier} ${returnType}`;
-    }
-    return `${type} ${param.name}`;
-  }).join(", ");
-  boilerplate = boilerplate.replace("{params}", params);
-  const returnBase = baseTypes[structure.returnType.baseType].java;
-  let returnType = structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].java.replace("base_type", returnBase) : returnBase;
-  if (structure.returnType.typeModifier) {
-    const typeModifier = typeModifiers[structure.returnType.typeModifier].java;
-    returnType = ["short", "BigInteger", "long"].includes(typeModifier) ? typeModifier : `${typeModifier} ${returnType}`;
-  }
-  boilerplate = boilerplate.replace("{return_type}", returnType);
-  return boilerplate;
-};
-
-// src/services/boilerplateGenerator/submissionCodeGenerator.ts
-function generateSubmissionCode(structure) {
-  return {
-    c: generateCSubmissionCode(structure),
-    cpp: generateCppSubmissionCode(structure),
-    java: generateJavaSubmissionCode(structure),
-    python3: generatePython3SubmissionCode(structure)
-  };
-}
-var generateCSubmissionCode = (structure) => {
-  let submissionCode = `
-#include <stdio.h>
-#include <stdlib.h>
-
-{solution_code}
-
-int main() {
-	{decl_init}
-
-	{ret_type} result = {func_name}({args});
-
-	{print_result}
-
-	return 0;
-}`;
-  const declInit = structure.parameters.map((p) => {
-    let bType = baseTypes[p.baseType].c;
-    if (p.category === "derived" && p.derivedType) {
-      const dType = derivedTypes[p.derivedType].c;
-      let type = dType.replace("base_type", bType);
-      if (p.derivedType.includes("Array")) {
-        const sizeDecl = `int ${p.name}_size;`;
-        const sizeInit = `scanf("%d", &${p.name}_size);`;
-        if (p.typeModifier) {
-          bType = `${typeModifiers[p.typeModifier].c} ${bType}`;
-          type = dType.replace("base_type", bType);
-        }
-        const arrDecl = `${type} ${p.name} = malloc(${p.name}_size * sizeof(${bType}));`;
-        const arrInit = `for (int i = 0; i < ${p.name}_size; i++) { scanf("${cFormatSpecifiers[bType]}", &${p.name}[i]); }`;
-        return `${sizeDecl}
-	${sizeInit}
-	${arrDecl}
-	${arrInit}`;
-      } else {
-        if (p.typeModifier) {
-          bType = `${typeModifiers[p.typeModifier].c} ${bType}`;
-        }
-        return `${type} ${p.name};
-scanf("${cFormatSpecifiers[bType]}", &${p.name});`;
-      }
-    } else {
-      if (p.typeModifier) {
-        bType = `${typeModifiers[p.typeModifier].c} ${bType}`;
-      }
-      return `${bType} ${p.name};
-scanf("${cFormatSpecifiers[bType]}", &${p.name});`;
-    }
-  }).join("\n	");
-  submissionCode = submissionCode.replace("{decl_init}", declInit);
-  const retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].c.replace("{baseType}", baseTypes[structure.returnType.baseType].c) : baseTypes[structure.returnType.baseType].c;
-  const finalRetType = structure.returnType.typeModifier ? `${typeModifiers[structure.returnType.typeModifier].c} ${retType}` : retType;
-  submissionCode = submissionCode.replace("{ret_type}", finalRetType);
-  submissionCode = submissionCode.replace("{func_name}", structure.functionName);
-  submissionCode = submissionCode.replace(
-    "{args}",
-    structure.parameters.map((p) => {
-      if (p.derivedType === "Array") {
-        return `${p.name}, ${p.name}_size`;
-      }
-      return p.name;
-    }).join(", ")
-  );
-  if (structure.returnType.category === "base" && structure.returnType.baseType) {
-    let bType = baseTypes[structure.returnType.baseType].c;
-    if (structure.returnType.typeModifier) {
-      bType = `${typeModifiers[structure.returnType.typeModifier].c} ${bType}`;
-    }
-    submissionCode = submissionCode.replace("{print_result}", `printf("${cFormatSpecifiers[bType]}", result);`);
-  } else {
-    let printResult = "";
-    if (structure.returnType.derivedType == "Array") {
-      let bType = baseTypes[structure.returnType.baseType].c;
-      if (structure.returnType.typeModifier) {
-        bType = `${typeModifiers[structure.returnType.typeModifier].c} ${bType}`;
-      }
-      printResult = `
-			for (int i = 0; i < sizeof(result) / sizeof(result[0]); i++) {
-				printf("${cFormatSpecifiers[bType]} ", result[i]);
-			}
-			printf("\\n");
-			`;
-    } else {
-      printResult = `
-			printf("%d\\n", result);
-			`;
-    }
-    submissionCode = submissionCode.replace("{print_result}", printResult);
-  }
-  return submissionCode;
-};
-var generateCppSubmissionCode = (structure) => {
-  let submissionCode = `
-#include <iostream>
-#include <vector>
-using namespace std;
-
-{solution_code}
-
-int main() {
-	{decl_init}
-
-	{ret_type} result = {func_name}({args});
-
-	{print_result}
-
-	return 0;
-}`;
-  const declInit = structure.parameters.map((p) => {
-    let bType = baseTypes[p.baseType].cpp;
-    if (p.category === "derived" && p.derivedType) {
-      const dType = derivedTypes[p.derivedType].cpp;
-      let type = dType.replace("base_type", bType);
-      if (p.derivedType.includes("Array")) {
-        const sizeDecl = `int ${p.name}_size;`;
-        const sizeInit = `cin >> ${p.name}_size;`;
-        if (p.typeModifier) {
-          type = `${typeModifiers[p.typeModifier].cpp} ${bType}`;
-        }
-        const arrDecl = `${type} ${p.name}(${p.name}_size);`;
-        const arrInit = `for (int i = 0; i < ${p.name}_size; i++) { cin >> ${p.name}[i]; }`;
-        return `${sizeDecl}
-	${sizeInit}
-	${arrDecl}
-	${arrInit}`;
-      } else {
-        if (p.typeModifier) {
-          bType = `${typeModifiers[p.typeModifier].cpp} ${bType}`;
-        }
-        return `${type} ${p.name};
-cin >> ${p.name};`;
-      }
-    } else {
-      if (p.typeModifier) {
-        bType = `${typeModifiers[p.typeModifier].cpp} ${bType}`;
-      }
-      return `${bType} ${p.name};
-cin >> ${p.name};`;
-    }
-  }).join("\n	");
-  submissionCode = submissionCode.replace("{decl_init}", declInit);
-  const retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].cpp.replace(
-    "{baseType}",
-    baseTypes[structure.returnType.baseType].cpp
-  ) : baseTypes[structure.returnType.baseType].cpp;
-  const finalRetType = structure.returnType.typeModifier ? `${typeModifiers[structure.returnType.typeModifier].cpp} ${retType}` : retType;
-  submissionCode = submissionCode.replace("{ret_type}", finalRetType);
-  submissionCode = submissionCode.replace("{func_name}", structure.functionName);
-  submissionCode = submissionCode.replace("{args}", structure.parameters.map((p) => p.name).join(", "));
-  if (structure.returnType.category === "base" && structure.returnType.baseType) {
-    submissionCode = submissionCode.replace("{print_result}", "cout << result;");
-  } else {
-    let printResult = "";
-    if (structure.returnType.derivedType == "Array") {
-      printResult = `
-			for (int i = 0; i < sizeof(result) / sizeof(result[0]); i++) {
-				cout << result[i] << " ";
-			}
-			cout << endl;
-			`;
-    } else {
-      printResult = `
-			cout << result << endl;
-			`;
-    }
-    submissionCode = submissionCode.replace("{print_result}", printResult);
-  }
-  return submissionCode;
-};
-var generatePython3SubmissionCode = (structure) => {
-  let submissionCode = `
-from typing import List
-
-{solution_code}
-
-if __name__ == "__main__":
-    {decl_init}
-    
-    result = {func_name}({args})
-
-    {print_result}
-`;
-  const declInit = structure.parameters.map((p) => {
-    const bType = baseTypes[p.baseType].python3;
-    if (p.category === "derived" && p.derivedType) {
-      const dType = derivedTypes[p.derivedType].python3;
-      const type = dType.replace("base_type", bType);
-      if (p.derivedType.includes("Array")) {
-        return `
-    ${p.name}_size = int(input())
-    ${p.name} = []
-    for _ in range(${p.name}_size):
-        ${p.name}.append(int(input()))`;
-      } else {
-        return `${p.name} = ${type}(input())`;
-      }
-    } else {
-      return `${p.name} = ${bType}(input())`;
-    }
-  }).join("\n    ");
-  submissionCode = submissionCode.replace("{decl_init}", declInit);
-  submissionCode = submissionCode.replace("{func_name}", structure.functionName);
-  submissionCode = submissionCode.replace("{args}", structure.parameters.map((p) => p.name).join(", "));
-  if (structure.returnType.category === "base" && structure.returnType.baseType) {
-    submissionCode = submissionCode.replace("{print_result}", `print(result, end="")`);
-  } else {
-    let printResult = "";
-    if (structure.returnType.derivedType == "Array") {
-      printResult = `
-	print(' '.join(map(str, result)))
-			`;
-    } else {
-      printResult = `
-	print(result)
-			`;
-    }
-    submissionCode = submissionCode.replace("{print_result}", printResult);
-  }
-  return submissionCode;
-};
-var generateJavaSubmissionCode = (structure) => {
-  let submissionCode = `
-import java.util.*;
-import java.io.*;
-import java.math.*;
-
-public class Solution {
-	{solution_code}
-
-	public static void main(String[] args) {
-		Scanner scanner = new Scanner(System.in);
-		{decl_init}
-
-		{ret_type} result = {func_name}({args});
-
-		{print_result}
-
-		scanner.close();
-	}
-}`;
-  const declInit = structure.parameters.map((p) => {
-    let bType = baseTypes[p.baseType].java;
-    if (p.category === "derived" && p.derivedType) {
-      let dType = derivedTypes[p.derivedType].java;
-      if (p.typeModifier) {
-        const typeModifier = typeModifiers[p.typeModifier].java;
-        if (typeModifier === "sort" || typeModifier === "long" || typeModifier === "BigInteger") {
-          bType = typeModifier;
-        } else {
-          bType = `${typeModifier} ${bType}`;
-        }
-        bType = `${typeModifier} ${bType}`;
-      }
-      let type = dType.replace("base_type", bType);
-      if (p.derivedType.includes("Array")) {
-        const sizeDecl = `int ${p.name}Size = scanner.nextInt();`;
-        const arrDecl = `${type} ${p.name} = new ${bType}[${p.name}Size];`;
-        if (p.typeModifier) {
-          const typeModifier = typeModifiers[p.typeModifier].java;
-          if (typeModifier === "BigInteger") {
-            const arrInit2 = `for (int i = 0; i < ${p.name}Size; i++) { ${p.name}[i] = new BigInteger(scanner.next()); }`;
-            return `${sizeDecl}
-		${arrDecl}
-		${arrInit2}`;
-          }
-          const arrInit = `for (int i = 0; i < ${p.name}Size; i++) { ${p.name}[i] = scanner.next${bType.charAt(0).toUpperCase() + bType.slice(1)}(); }`;
-          return `${sizeDecl}
-		${arrDecl}
-		${arrInit}`;
-        }
-      } else {
-        if (p.typeModifier) {
-          const typeModifier = typeModifiers[p.typeModifier].java;
-          if (typeModifier === "long" || typeModifier === "short") {
-            type = typeModifier;
-            bType = typeModifier;
-          } else if (typeModifier === "BigInteger") {
-            type = typeModifier;
-            return `${type} ${p.name} = new ${typeModifier}(scanner.next());`;
-          } else {
-            type = `${typeModifier} ${type}`;
-          }
-        }
-        return `${type} ${p.name} = scanner.next${bType.charAt(0).toUpperCase() + bType.slice(1)}();`;
-      }
-    } else {
-      if (p.typeModifier) {
-        const typeModifier = typeModifiers[p.typeModifier].java;
-        if (typeModifier === "long" || typeModifier === "short") {
-          bType = typeModifier;
-        } else if (typeModifier === "BigInteger") {
-          return `${typeModifier} ${p.name} = new ${typeModifier}(scanner.next());`;
-        } else {
-          bType = typeModifier;
-        }
-      }
-      return `${bType} ${p.name} = scanner.next${bType.charAt(0).toUpperCase() + bType.slice(1)}();`;
-    }
-  }).join("\n		");
-  submissionCode = submissionCode.replace("{decl_init}", declInit);
-  let retType = structure.returnType.category === "derived" && structure.returnType.derivedType ? derivedTypes[structure.returnType.derivedType].java.replace(
-    "{baseType}",
-    baseTypes[structure.returnType.baseType].java
-  ) : baseTypes[structure.returnType.baseType].java;
-  if (structure.returnType.typeModifier) {
-    const typeModifier = typeModifiers[structure.returnType.typeModifier].java;
-    retType = ["short", "BigInteger", "long"].includes(typeModifier) ? typeModifier : `${typeModifier} ${retType}`;
-  }
-  submissionCode = submissionCode.replace("{ret_type}", retType);
-  submissionCode = submissionCode.replace("{func_name}", structure.functionName);
-  submissionCode = submissionCode.replace("{args}", structure.parameters.map((p) => p.name).join(", "));
-  if (structure.returnType.category === "base" && structure.returnType.baseType) {
-    submissionCode = submissionCode.replace("{print_result}", "System.out.print(result);");
-  } else {
-    let printResult = "";
-    if (structure.returnType.derivedType == "Array") {
-      printResult = `
-			for (int i = 0; i < result.length; i++) {   
-				System.out.print(result[i] + " ");
-			}
-			System.out.println();
-			`;
-    } else {
-      printResult = `
-			System.out.print(result);
-			`;
-    }
-    submissionCode = submissionCode.replace("{print_result}", printResult);
-  }
-  return submissionCode;
-};
-
 // src/services/stdinGenerator.ts
 var stdinGenerator = (functionStructure, testCase) => {
   const stdin = functionStructure.parameters.map((parameter, index) => {
@@ -21957,6 +21320,7 @@ ${values.join(" ")}
 var prisma4 = new import_client4.PrismaClient();
 async function contributeProblem(req, res) {
   var _a;
+  console.log(req.body);
   try {
     const parsed = import_code_champ_common2.contributeProblemSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
@@ -21969,37 +21333,46 @@ async function contributeProblem(req, res) {
       functionStructure,
       topicTags,
       hints,
-      constraints
+      constraints,
+      boilerplateCode,
+      submissionCode
     } = parsed.data;
     const slug = await generateUniqueSlug(title);
     await Promise.all([
       uploadJsonToS3(`problem-test-cases/${slug}/sampleTestCases.json`, sampleTestCases),
       uploadJsonToS3(`problem-test-cases/${slug}/testCases.json`, testCases)
     ]);
-    const boilerplateCode = generateBoilerplate(functionStructure);
-    const submissionCode = generateSubmissionCode(functionStructure);
-    const topicTagIdsToAdd = await Promise.all(
-      topicTags.filter((tag) => tag.trim()).map(async (tag) => {
-        const existingTag = await prisma4.topicTag.findFirst({ where: { content: tag } });
-        if (existingTag) {
-          return existingTag.id;
-        } else {
-          const newTag = await prisma4.topicTag.create({ data: { content: tag } });
-          return newTag.id;
+    const existingTags = await prisma4.topicTag.findMany({
+      where: {
+        content: {
+          in: topicTags.map((tag) => tag.trim())
         }
-      })
-    );
+      }
+    });
+    if (existingTags.length !== topicTags.length) {
+      return res.status(400).json({
+        message: "One or more topic tags do not exist"
+      });
+    }
+    const bigestProblemNum = await prisma4.problem.findFirst({
+      select: {
+        problemNumber: true
+      },
+      orderBy: {
+        problemNumber: "desc"
+      }
+    });
     const newProblem = await prisma4.problem.create({
       data: {
         title,
-        problemNumber: 4,
+        problemNumber: bigestProblemNum ? bigestProblemNum.problemNumber + 1 : 1,
         slug,
         description,
         difficultyLevel,
         sampleTestCasesKey: `problem-test-cases/${slug}/sampleTestCases.json`,
         testCasesKey: `problem-test-cases/${slug}/testCases.json`,
-        boilerplateCode: JSON.stringify(boilerplateCode),
-        submissionCode: JSON.stringify(submissionCode),
+        boilerplateCode,
+        submissionCode,
         testCasesCount: testCases.length || 0,
         functionStructure: JSON.stringify(functionStructure),
         constraints: {
@@ -22008,7 +21381,7 @@ async function contributeProblem(req, res) {
           }))
         },
         topicTags: {
-          connect: topicTagIdsToAdd.map((id) => ({ id }))
+          connect: existingTags.map((tag) => ({ id: tag.id }))
         },
         hints: {
           create: hints.map((hint) => ({
@@ -22034,6 +21407,7 @@ async function contributeProblem(req, res) {
   }
 }
 async function getFeedProblems(req, res) {
+  const { userId } = req.query;
   try {
     const problems = await prisma4.problem.findMany({
       take: 50,
@@ -22046,17 +21420,37 @@ async function getFeedProblems(req, res) {
         title: true,
         difficultyLevel: true,
         submissionCount: true,
-        acceptedSubmissions: true
+        acceptedSubmissions: true,
+        topicTags: {
+          select: {
+            content: true
+          }
+        }
       }
     });
+    let solvedProblems = [];
+    if (userId && userId !== "undefined") {
+      solvedProblems = await prisma4.submission.findMany({
+        where: {
+          problemId: {
+            in: problems.map((problem) => problem.id)
+          },
+          createdById: userId,
+          status: "Accepted"
+        }
+      });
+    }
     const editedProblems = problems.map((problem) => {
       const acceptanceRate = problem.submissionCount > 0 ? (problem.acceptedSubmissions / problem.submissionCount * 100).toFixed(2) : "0.00";
+      const status = !!solvedProblems.find((solvedProblem) => solvedProblem.problemId === problem.id);
       return {
         id: problem.id,
         problemNumber: problem.problemNumber,
         title: problem.title,
         difficulty: problem.difficultyLevel,
-        acceptanceRate: `${acceptanceRate}%`
+        acceptanceRate: `${acceptanceRate}%`,
+        topicTags: problem.topicTags.map((tag) => tag.content),
+        isSolved: status
       };
     });
     return res.status(200).json(editedProblems);
@@ -22099,7 +21493,7 @@ async function getProblem(req, res) {
       return res.status(404).json({ message: "Problem not found" });
     }
     let solutions = "";
-    if (userId) {
+    if (userId && userId !== "undefined") {
       const ongoingProblem = await prisma4.ongoingProblem.findFirst({
         where: {
           userId,
@@ -22159,7 +21553,6 @@ async function putOngoingProblem(req, res) {
     }
     return res.sendStatus(200);
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -22225,10 +21618,19 @@ async function submitSolution(req, res) {
         inputs: JSON.stringify(testCase.input)
       }))
     });
-    return res.status(200).json({
+    res.status(200).json({
       message: "Solution submitted successfully",
       taskId: response.data.batchTaskId
     });
+    await prisma4.problem.update({
+      where: { id: problemId },
+      data: {
+        submissionCount: {
+          increment: 1
+        }
+      }
+    });
+    return;
   } catch (err) {
     console.log(err);
     res.status(500).json({
