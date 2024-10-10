@@ -15,8 +15,6 @@ import { stdinGenerator } from "../services/stdinGenerator";
 const prisma = new PrismaClient();
 
 export async function contributeProblem(req: Request, res: Response) {
-	console.log(req.body);
-
 	try {
 		const parsed = contributeProblemSchema.safeParse(req.body);
 		if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
@@ -74,8 +72,8 @@ export async function contributeProblem(req: Request, res: Response) {
 				difficultyLevel: difficultyLevel,
 				sampleTestCasesKey: `problem-test-cases/${slug}/sampleTestCases.json`,
 				testCasesKey: `problem-test-cases/${slug}/testCases.json`,
-				boilerplateCode: boilerplateCode,
-				submissionCode: submissionCode,
+				boilerplateCode: req.body.boilerplateCode,
+				submissionCode: req.body.submissionCode,
 				testCasesCount: testCases.length || 0,
 				functionStructure: JSON.stringify(functionStructure),
 				constraints: {

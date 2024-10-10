@@ -21320,7 +21320,6 @@ ${values.join(" ")}
 var prisma4 = new import_client4.PrismaClient();
 async function contributeProblem(req, res) {
   var _a;
-  console.log(req.body);
   try {
     const parsed = import_code_champ_common2.contributeProblemSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
@@ -21371,8 +21370,8 @@ async function contributeProblem(req, res) {
         difficultyLevel,
         sampleTestCasesKey: `problem-test-cases/${slug}/sampleTestCases.json`,
         testCasesKey: `problem-test-cases/${slug}/testCases.json`,
-        boilerplateCode,
-        submissionCode,
+        boilerplateCode: req.body.boilerplateCode,
+        submissionCode: req.body.submissionCode,
         testCasesCount: testCases.length || 0,
         functionStructure: JSON.stringify(functionStructure),
         constraints: {
