@@ -201,10 +201,20 @@ export async function signinUser(req: Request, res: Response) {
             message: "Internal Server Error",
         });
     }
-} // Logs out the user
+}
+
 export async function signoutUser(req: Request, res: Response) {
-    res.clearCookie("token");
-    return res.json({ message: "signed out" });
+	try {
+		res.clearCookie("token", {
+			httpOnly: true,
+			secure: true,
+			sameSite: "none",
+		});
+		return res.status(200).json({ message: "Signed Out" });
+	} catch (error) {
+		console.error("Error during sign out:", error);
+		return res.status(500).json({ message: "An error occurred during sign out" });
+	}
 }
 
 // Sends an OTP to the user's email when they forget their password
