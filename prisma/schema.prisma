@@ -17,8 +17,10 @@ model User {
   id             String           @id @default(uuid())
   userName       String           @unique
   email          String           @unique
-  password       String
+  password       String?
   profileImg     String?
+  googleId       String?          @unique
+  avatar         String?
   Problem        Problem[]
   Submission     Submission[]
   OngoingProblem OngoingProblem[]

@@ -179,6 +179,7 @@ export async function signinUser(req: Request, res: Response) {
         }
 
         const passwordWithPepper = password + PEPPER;
+        //@ts-ignore
         const isPasswordCorrect = await bcrypt.compare(passwordWithPepper, user.password);
         if (!isPasswordCorrect) {
             return res.status(400).json({
@@ -200,9 +201,7 @@ export async function signinUser(req: Request, res: Response) {
             message: "Internal Server Error",
         });
     }
-}
-
-// Logs out the user
+} // Logs out the user
 export async function signoutUser(req: Request, res: Response) {
     res.clearCookie("token");
     return res.json({ message: "signed out" });
