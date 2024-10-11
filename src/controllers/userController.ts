@@ -147,6 +147,8 @@ export async function fetchUserProfile(req: Request, res: Response) {
             id: user.id,
             email: user.email,
             userName: user.userName,
+            profileImg: user.profileImg,
+            avatar: user.avatar,
         });
     } catch (error) {
         res.status(500).json({
