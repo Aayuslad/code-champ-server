@@ -349,7 +349,7 @@ export async function googleOAuth20Controller(req: Request, res: Response) {
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
         });
 
-        const redirectUrl = "https://app.code-champ.xyz/home";
+        const redirectUrl = "https://app.code-champ.xyz/problems";
         res.redirect(redirectUrl);
     } catch (error) {
         res.status(500).json({ error: "Internal server error" });
