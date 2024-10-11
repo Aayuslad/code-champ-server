@@ -12,6 +12,8 @@ import {
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 const prisma = new PrismaClient();
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const otpLength = 6;
 const PEPPER = process.env.BCRYPT_PEPPER;
 
@@ -110,6 +112,7 @@ export async function verifySignupOTP(req: Request, res: Response) {
             httpOnly: true,
             secure: true,
             sameSite: "none",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
         });
 
         req.session.signupOTP = undefined;
@@ -193,6 +196,7 @@ export async function signinUser(req: Request, res: Response) {
             httpOnly: true,
             secure: true,
             sameSite: "none",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
         });
 
         return res.json({ message: "Successfully signed in!" });
@@ -204,17 +208,17 @@ export async function signinUser(req: Request, res: Response) {
 }
 
 export async function signoutUser(req: Request, res: Response) {
-	try {
-		res.clearCookie("token", {
-			httpOnly: true,
-			secure: true,
-			sameSite: "none",
-		});
-		return res.status(200).json({ message: "Signed Out" });
-	} catch (error) {
-		console.error("Error during sign out:", error);
-		return res.status(500).json({ message: "An error occurred during sign out" });
-	}
+    try {
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+        });
+        return res.status(200).json({ message: "Signed Out" });
+    } catch (error) {
+        console.error("Error during sign out:", error);
+        return res.status(500).json({ message: "An error occurred during sign out" });
+    }
 }
 
 // Sends an OTP to the user's email when they forget their password
@@ -327,5 +331,86 @@ export async function updatePassword(req: Request, res: Response) {
         res.status(500).json({
             message: "Internal Server Error",
         });
+    }
+}
+
+export async function googleOAuth20Controller(req: Request, res: Response) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: "Authentication failed" });
+        }
+
+        const token = jwt.sign({ id: req.user.id }, process.env.JWT_SECRET as string, { expiresIn: "30d" });
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "none",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+        });
+
+        const redirectUrl = "https://app.code-champ.xyz/home";
+        res.redirect(redirectUrl);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+export async function googleOneTapController(req: Request, res: Response) {
+    const { token } = req.body;
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const googleId = payload?.sub;
+        const email = payload?.email;
+        const name = payload?.name;
+        const picture = payload?.picture;
+
+        // Check if user already exists
+        let user = await prisma.user.findUnique({
+            where: { googleId: googleId },
+        });
+
+        if (!user) {
+            // If no user with googleId, check by email
+            const existingUserByEmail = await prisma.user.findUnique({
+                where: { email: email },
+            });
+
+            if (existingUserByEmail) {
+                // If user exists but no googleId, associate Google account
+                user = await prisma.user.update({
+                    where: { email: email },
+                    data: { googleId: googleId, avatar: picture },
+                });
+            } else {
+                // Create new user if no existing one
+                user = await prisma.user.create({
+                    data: {
+                        email: email,
+                        userName: name,
+                        googleId: googleId,
+                        avatar: picture,
+                    },
+                });
+            }
+        }
+
+        const jwtToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, { expiresIn: "30d" });
+        res.cookie("token", jwtToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+        });
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
     }
 }
