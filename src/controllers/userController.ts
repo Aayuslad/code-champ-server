@@ -226,6 +226,14 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
             );
         });
 
+        const userRank = await prisma.user.count({
+            where: {
+                points: {
+                    gt: user.points,
+                },
+            },
+        });
+
         const data = {
             id: user.id,
             email: user.email,
@@ -234,7 +242,7 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
             avatar: user.avatar,
             solved: user.Submission.length,
             points: user.points,
-            rank: user.rank,
+            rank: userRank + 1,
             totalProblems,
             totalBasic,
             totalEasy,
@@ -257,6 +265,7 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
 // Signs in the user
 export async function signinUser(req: Request, res: Response) {
     const { emailOrUsername, password } = req.body;

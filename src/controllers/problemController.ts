@@ -421,6 +421,7 @@ export async function getSubmissions(req: Request, res: Response) {
                 languageId: true,
                 status: true,
                 createdAt: true,
+                points: true,
             },
         });
 
