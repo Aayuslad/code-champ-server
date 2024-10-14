@@ -60,7 +60,7 @@ export async function contributeProblem(req: Request, res: Response) {
             },
             orderBy: {
                 problemNumber: "desc",
-            },  
+            },
         });
 
         const newProblem = await prisma.problem.create({
@@ -318,6 +318,7 @@ export async function submitSolution(req: Request, res: Response) {
                 testCasesKey: true,
                 functionStructure: true,
                 submissionCode: true,
+                difficultyLevel: true,
             },
         });
 
@@ -336,6 +337,7 @@ export async function submitSolution(req: Request, res: Response) {
                 code: solutionCode,
                 languageId: languageId.toString(),
                 status: "Pending",
+                difficultyLevel: problem.difficultyLevel,
                 createdById: req.user?.id || "",
             },
         });

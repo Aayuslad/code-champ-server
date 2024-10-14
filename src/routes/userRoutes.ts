@@ -2,6 +2,7 @@ import { Router } from "express";
 import passport from "passport";
 import {
     fetchUserProfile,
+    fetchWholeUserProfile,
     googleOAuth20Controller,
     googleOneTapController,
     sendPasswordResetOTP,
@@ -19,6 +20,7 @@ const userRouter = Router();
 userRouter.post("/signup", signupUser);
 userRouter.post("/signup/verify-otp", verifySignupOTP);
 userRouter.get("/profile", authMiddleware, fetchUserProfile);
+userRouter.get("/whole-profile/:id", fetchWholeUserProfile);
 userRouter.post("/signin", signinUser);
 userRouter.post("/signout", authMiddleware, signoutUser);
 userRouter.post("/password-reset/send-otp", sendPasswordResetOTP);

@@ -21,6 +21,8 @@ model User {
   profileImg     String?
   googleId       String?          @unique
   avatar         String?
+  points         Int              @default(0)
+  rank           Int              @default(0)
   Problem        Problem[]
   Submission     Submission[]
   OngoingProblem OngoingProblem[]
@@ -49,6 +51,7 @@ model Problem {
   createdAt           DateTime        @default(now())
   createdById         String
   createdBy           User            @relation(fields: [createdById], references: [id])
+  submissions         Submission[]
 }
 
 model OngoingProblem {
@@ -80,14 +83,16 @@ model Hint {
 }
 
 model Submission {
-  id          String           @id @default(uuid())
-  problemId   String
-  code        String
-  languageId  String
-  status      submissionStatus
-  createdAt   DateTime         @default(now())
-  createdById String
-  createdBy   User             @relation(fields: [createdById], references: [id])
+  id              String           @id @default(uuid())
+  problemId       String
+  problem         Problem          @relation(fields: [problemId], references: [id])
+  code            String
+  languageId      String
+  difficultyLevel difficultyLevel
+  status          submissionStatus
+  createdAt       DateTime         @default(now())
+  createdById     String
+  createdBy       User             @relation(fields: [createdById], references: [id])
 }
 
 enum difficultyLevel {
