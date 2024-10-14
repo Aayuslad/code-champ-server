@@ -89,6 +89,7 @@ model Submission {
   code            String
   languageId      String
   difficultyLevel difficultyLevel
+  points          Int?
   status          submissionStatus
   createdAt       DateTime         @default(now())
   createdById     String
