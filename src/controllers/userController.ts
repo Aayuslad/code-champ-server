@@ -220,10 +220,10 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
             languageIdCounts.set(languageId, (languageIdCounts.get(languageId) || 0) + 1);
 
             // Count and collect unique problems by difficulty
-            difficultyLevelCounts[difficultyLevel as keyof typeof difficultyLevelCounts]++;
-            (solvedByDifficulty[difficultyLevel as keyof typeof solvedByDifficulty] as Set<{ id: string; title: string }>).add(
-                { id: problem.id, title: problem.title },
-            );
+            if (!solvedByDifficulty[difficultyLevel as keyof typeof solvedByDifficulty].has(problem.id)) {
+                difficultyLevelCounts[difficultyLevel as keyof typeof difficultyLevelCounts]++;
+                (solvedByDifficulty[difficultyLevel as keyof typeof solvedByDifficulty] as Set<string>).add(problem.id);
+            }
         });
 
         const userRank = await prisma.user.count({
@@ -252,10 +252,22 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
             easySolvedCount: difficultyLevelCounts.Easy,
             mediumSolvedCount: difficultyLevelCounts.Medium,
             hardSolvedCount: difficultyLevelCounts.Hard,
-            basicSolved: Array.from(solvedByDifficulty.Basic),
-            easySolved: Array.from(solvedByDifficulty.Easy),
-            mediumSolved: Array.from(solvedByDifficulty.Medium),
-            hardSolved: Array.from(solvedByDifficulty.Hard),
+            basicSolved: Array.from(solvedByDifficulty.Basic, id => {
+                const problem = user.Submission.find(s => s.problem.id === id)?.problem;
+                return problem ? { id: problem.id, title: problem.title } : null;
+            }).filter(Boolean),
+            easySolved: Array.from(solvedByDifficulty.Easy, id => {
+                const problem = user.Submission.find(s => s.problem.id === id)?.problem;
+                return problem ? { id: problem.id, title: problem.title } : null;
+            }).filter(Boolean),
+            mediumSolved: Array.from(solvedByDifficulty.Medium, id => {
+                const problem = user.Submission.find(s => s.problem.id === id)?.problem;
+                return problem ? { id: problem.id, title: problem.title } : null;
+            }).filter(Boolean),
+            hardSolved: Array.from(solvedByDifficulty.Hard, id => {
+                const problem = user.Submission.find(s => s.problem.id === id)?.problem;
+                return problem ? { id: problem.id, title: problem.title } : null;
+            }).filter(Boolean),
             skillCounts: Array.from(skillCounts, ([skill, count]) => ({ skill, count })),
             languageIdCounts: Array.from(languageIdCounts, ([languageId, count]) => ({ languageId, count })),
         };

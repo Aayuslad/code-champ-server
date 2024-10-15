@@ -20864,6 +20864,7 @@ var import_cookie_parser = __toESM(require("cookie-parser"));
 
 // src/routes/userRoutes.ts
 var import_express = require("express");
+var import_passport = __toESM(require("passport"));
 
 // src/controllers/userController.ts
 var import_client = require("@prisma/client");
@@ -20890,24 +20891,35 @@ async function sendOTPMail(to, otp) {
       to,
       subject: "OTP Verification",
       html: `
-                    <div style="font-family: Helvetica, Arial, sans-serif; min-width: 1000px; overflow:auto; line-height:2">
-                    <div style="margin: 50px auto; width: 70%; padding: 20px 0">
-                        <div style="border-bottom: 1px solid #eee">
-                        <a href="" style="font-size: 1.4em; color: #00466a; text-decoration:none; font-weight:600">Notes</a>
+                <div style="font-family: Helvetica, Arial, sans-serif; min-width: 1000px; overflow:auto; line-height:2">
+                    <div style="margin: 50px auto; width: 70%; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                        <div style="border-bottom: 1px solid #eee; padding-bottom: 20px;">
+                            <h1 style="font-size: 2em; color: #003366; font-weight: 600; margin-bottom: 10px;">Code Champ</h1>
+                            <p style="color: #555; font-size: 1.2em;">Unleash Your Coding Potential</p>
                         </div>
-                        <p style="font-size: 1.1em">Hi,</p>
-                        <p>Thank you for choosing Your Brand. Use the following OTP to complete your password update procedures. OTP is valid for 5 minutes</p>
-                        <h2 style="background: #00466a; margin: 0 auto; width: max-content; padding: 0 10px; color: #fff; border-radius: 4px;">${otp}</h2>
-                        <p style="font-size: 0.9em;">Regards,<br />Notes</p>
-                        <hr style="border:none; border-top: 1px solid #eee" />
-                        <div style="float: right; padding: 8px 0; color: #aaa; font-size: 0.8em; line-height: 1; font-weight: 300">
-                        <p>Notes</p>
-                        <p>Navsari, Gujarat</p>
-                        <p>India</p>
+                        <p style="font-size: 1.2em; color: #333;">Hi,</p>
+                        <p style="font-size: 1.1em; color: #333;">
+                            You're just one step away from getting started with Code Champ! Use the OTP below to verify your email address and secure your account. This OTP is valid for 5 minutes, so be sure to enter it soon.
+                        </p>
+                        <div style="text-align: center; margin: 20px 0;">
+                            <div style="display: inline-block; background: #003366; color: white; font-size: 1.6em; padding: 5px 15px; border-radius: 8px; letter-spacing: 2px;">${otp}</div>
+                        </div>
+                        <p style="font-size: 1.1em; color: #333;">
+                            At Code Champ, we're dedicated to helping you enhance your problem-solving skills and succeed in your coding journey. Whether you're practicing for interviews or challenging yourself with complex algorithms, we're here to support you every step of the way.
+                        </p>
+                        <p style="font-size: 1.1em; color: #333;">
+                            If you didn\u2019t request this OTP, please contact us immediately or ignore this email.
+                        </p>
+                        <p style="font-size: 0.9em; color: #666;">Best regards,<br />The Code Champ Team</p>
+                        <hr style="border:none; border-top: 1px solid #eee; margin: 20px 0;" />
+                        <div style="padding: 8px 0; color: #aaa; font-size: 0.8em; line-height: 1.5; font-weight: 300">
+                            <p>Code Champ</p>
+                            <p>Navsari, Gujarat</p>
+                            <p>India</p>
                         </div>
                     </div>
-                    </div>
-                `
+                </div>
+            `
     });
     return true;
   } catch (error) {
@@ -20920,6 +20932,8 @@ var import_code_champ_common = require("@aayushlad/code-champ-common");
 var import_bcrypt = __toESM(require("bcrypt"));
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"));
 var prisma = new import_client.PrismaClient();
+var { OAuth2Client } = require("google-auth-library");
+var client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 var otpLength = 6;
 var PEPPER = process.env.BCRYPT_PEPPER;
 async function signupUser(req, res) {
@@ -20993,7 +21007,9 @@ async function verifySignupOTP(req, res) {
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
-      sameSite: "none"
+      sameSite: "none",
+      maxAge: 30 * 24 * 60 * 60 * 1e3
+      // 30 days in milliseconds
     });
     req.session.signupOTP = void 0;
     req.session.signupEmail = void 0;
@@ -21022,12 +21038,125 @@ async function fetchUserProfile(req, res) {
     return res.json({
       id: user.id,
       email: user.email,
-      userName: user.userName
+      userName: user.userName,
+      profileImg: user.profileImg,
+      avatar: user.avatar
     });
   } catch (error) {
     res.status(500).json({
       message: "Internal Server Error"
     });
+  }
+}
+async function fetchWholeUserProfile(req, res) {
+  try {
+    const [user, platformData] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: {
+          id: true,
+          email: true,
+          userName: true,
+          profileImg: true,
+          avatar: true,
+          points: true,
+          rank: true,
+          Submission: {
+            where: { status: "Accepted" },
+            orderBy: { createdAt: "desc" },
+            select: {
+              languageId: true,
+              problem: {
+                select: {
+                  id: true,
+                  title: true,
+                  difficultyLevel: true,
+                  topicTags: { select: { content: true } }
+                }
+              }
+            }
+          }
+        }
+      }),
+      prisma.$transaction([
+        prisma.problem.count(),
+        prisma.problem.count({ where: { difficultyLevel: "Basic" } }),
+        prisma.problem.count({ where: { difficultyLevel: "Easy" } }),
+        prisma.problem.count({ where: { difficultyLevel: "Medium" } }),
+        prisma.problem.count({ where: { difficultyLevel: "Hard" } })
+      ])
+    ]);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const [totalProblems, totalBasic, totalEasy, totalMedium, totalHard] = platformData;
+    const skillCounts = /* @__PURE__ */ new Map();
+    const languageIdCounts = /* @__PURE__ */ new Map();
+    const difficultyLevelCounts = { Basic: 0, Easy: 0, Medium: 0, Hard: 0 };
+    const solvedByDifficulty = { Basic: /* @__PURE__ */ new Set(), Easy: /* @__PURE__ */ new Set(), Medium: /* @__PURE__ */ new Set(), Hard: /* @__PURE__ */ new Set() };
+    user.Submission.forEach((submission) => {
+      const { problem, languageId } = submission;
+      const { difficultyLevel, topicTags } = problem;
+      topicTags.forEach((tag) => {
+        skillCounts.set(tag.content, (skillCounts.get(tag.content) || 0) + 1);
+      });
+      languageIdCounts.set(languageId, (languageIdCounts.get(languageId) || 0) + 1);
+      if (!solvedByDifficulty[difficultyLevel].has(problem.id)) {
+        difficultyLevelCounts[difficultyLevel]++;
+        solvedByDifficulty[difficultyLevel].add(problem.id);
+      }
+    });
+    const userRank = await prisma.user.count({
+      where: {
+        points: {
+          gt: user.points
+        }
+      }
+    });
+    const data = {
+      id: user.id,
+      email: user.email,
+      userName: user.userName,
+      profileImg: user.profileImg,
+      avatar: user.avatar,
+      solved: user.Submission.length,
+      points: user.points,
+      rank: userRank + 1,
+      totalProblems,
+      totalBasic,
+      totalEasy,
+      totalMedium,
+      totalHard,
+      basicSolvedCount: difficultyLevelCounts.Basic,
+      easySolvedCount: difficultyLevelCounts.Easy,
+      mediumSolvedCount: difficultyLevelCounts.Medium,
+      hardSolvedCount: difficultyLevelCounts.Hard,
+      basicSolved: Array.from(solvedByDifficulty.Basic, (id) => {
+        var _a;
+        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
+        return problem ? { id: problem.id, title: problem.title } : null;
+      }).filter(Boolean),
+      easySolved: Array.from(solvedByDifficulty.Easy, (id) => {
+        var _a;
+        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
+        return problem ? { id: problem.id, title: problem.title } : null;
+      }).filter(Boolean),
+      mediumSolved: Array.from(solvedByDifficulty.Medium, (id) => {
+        var _a;
+        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
+        return problem ? { id: problem.id, title: problem.title } : null;
+      }).filter(Boolean),
+      hardSolved: Array.from(solvedByDifficulty.Hard, (id) => {
+        var _a;
+        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
+        return problem ? { id: problem.id, title: problem.title } : null;
+      }).filter(Boolean),
+      skillCounts: Array.from(skillCounts, ([skill, count]) => ({ skill, count })),
+      languageIdCounts: Array.from(languageIdCounts, ([languageId, count]) => ({ languageId, count }))
+    };
+    return res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
   }
 }
 async function signinUser(req, res) {
@@ -21063,7 +21192,9 @@ async function signinUser(req, res) {
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
-      sameSite: "none"
+      sameSite: "none",
+      maxAge: 30 * 24 * 60 * 60 * 1e3
+      // 30 days in milliseconds
     });
     return res.json({ message: "Successfully signed in!" });
   } catch {
@@ -21073,8 +21204,17 @@ async function signinUser(req, res) {
   }
 }
 async function signoutUser(req, res) {
-  res.clearCookie("token");
-  return res.json({ message: "signed out" });
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none"
+    });
+    return res.status(200).json({ message: "Signed Out" });
+  } catch (error) {
+    console.error("Error during sign out:", error);
+    return res.status(500).json({ message: "An error occurred during sign out" });
+  }
 }
 async function sendPasswordResetOTP(req, res) {
   var _a, _b, _c, _d;
@@ -21161,6 +21301,73 @@ async function updatePassword(req, res) {
     });
   }
 }
+async function googleOAuth20Controller(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication failed" });
+    }
+    const token = import_jsonwebtoken.default.sign({ id: req.user.id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge: 30 * 24 * 60 * 60 * 1e3
+      // 30 days in milliseconds
+    });
+    const redirectUrl = "https://app.code-champ.xyz/problems";
+    res.redirect(redirectUrl);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+async function googleOneTapController(req, res) {
+  const { token } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const googleId = payload == null ? void 0 : payload.sub;
+    const email = payload == null ? void 0 : payload.email;
+    const name = payload == null ? void 0 : payload.name;
+    const picture = payload == null ? void 0 : payload.picture;
+    let user = await prisma.user.findUnique({
+      where: { googleId }
+    });
+    if (!user) {
+      const existingUserByEmail = await prisma.user.findUnique({
+        where: { email }
+      });
+      if (existingUserByEmail) {
+        user = await prisma.user.update({
+          where: { email },
+          data: { googleId, avatar: picture }
+        });
+      } else {
+        user = await prisma.user.create({
+          data: {
+            email,
+            userName: name,
+            googleId,
+            avatar: picture
+          }
+        });
+      }
+    }
+    const jwtToken = import_jsonwebtoken.default.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+    res.cookie("token", jwtToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 30 * 24 * 60 * 60 * 1e3
+      // 30 days in milliseconds
+    });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
 
 // src/middlewares/authMiddleware.ts
 var import_client2 = require("@prisma/client");
@@ -21199,11 +21406,15 @@ var userRouter = (0, import_express.Router)();
 userRouter.post("/signup", signupUser);
 userRouter.post("/signup/verify-otp", verifySignupOTP);
 userRouter.get("/profile", authMiddleware, fetchUserProfile);
+userRouter.get("/whole-profile/:id", fetchWholeUserProfile);
 userRouter.post("/signin", signinUser);
 userRouter.post("/signout", authMiddleware, signoutUser);
 userRouter.post("/password-reset/send-otp", sendPasswordResetOTP);
 userRouter.post("/password-reset/verify-otp", verifyPasswordResetOTP);
 userRouter.post("/password-reset/update", updatePassword);
+userRouter.get("/auth/google", import_passport.default.authenticate("google", { scope: ["profile", "email"] }));
+userRouter.get("/auth/google/callback", import_passport.default.authenticate("google", { failureRedirect: "/" }), googleOAuth20Controller);
+userRouter.post("/auth/google-one-tap", googleOneTapController);
 var userRoutes_default = userRouter;
 
 // src/routes/problemRouter.ts
@@ -21586,7 +21797,8 @@ async function submitSolution(req, res) {
         id: true,
         testCasesKey: true,
         functionStructure: true,
-        submissionCode: true
+        submissionCode: true,
+        difficultyLevel: true
       }
     });
     if (!problem) return res.status(404).json({ message: "Problem not found" });
@@ -21602,6 +21814,7 @@ async function submitSolution(req, res) {
         code: solutionCode,
         languageId: languageId.toString(),
         status: "Pending",
+        difficultyLevel: problem.difficultyLevel,
         createdById: ((_a = req.user) == null ? void 0 : _a.id) || ""
       }
     });
@@ -21676,7 +21889,8 @@ async function getSubmissions(req, res) {
         code: true,
         languageId: true,
         status: true,
-        createdAt: true
+        createdAt: true,
+        points: true
       }
     });
     return res.status(200).json(submission);
@@ -21704,6 +21918,72 @@ var import_cors = __toESM(require("cors"));
 var import_express_session = __toESM(require("express-session"));
 var import_morgan = __toESM(require("morgan"));
 var import_body_parser = __toESM(require_body_parser());
+
+// src/middlewares/passportMiddleware.ts
+var import_client5 = require("@prisma/client");
+var import_passport2 = __toESM(require("passport"));
+var import_passport_google_oauth20 = require("passport-google-oauth20");
+var prisma5 = new import_client5.PrismaClient();
+import_passport2.default.use(
+  new import_passport_google_oauth20.Strategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/user/auth/google/callback"
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      try {
+        let user = await prisma5.user.findUnique({
+          where: { googleId: profile.id }
+        });
+        if (!user) {
+          const existingUserByEmail = await prisma5.user.findUnique({
+            where: { email: (_b = (_a = profile.emails) == null ? void 0 : _a[0]) == null ? void 0 : _b.value }
+          });
+          if (existingUserByEmail) {
+            user = await prisma5.user.update({
+              where: { email: (_d = (_c = profile.emails) == null ? void 0 : _c[0]) == null ? void 0 : _d.value },
+              data: {
+                googleId: profile.id,
+                avatar: ((_f = (_e = profile.photos) == null ? void 0 : _e[0]) == null ? void 0 : _f.value) || null
+              }
+            });
+          } else {
+            user = await prisma5.user.create({
+              data: {
+                googleId: profile.id,
+                email: ((_h = (_g = profile.emails) == null ? void 0 : _g[0]) == null ? void 0 : _h.value) || "",
+                userName: profile.displayName,
+                avatar: ((_j = (_i = profile.photos) == null ? void 0 : _i[0]) == null ? void 0 : _j.value) || null
+              }
+            });
+          }
+        }
+        done(null, user);
+      } catch (err) {
+        done(err, void 0);
+      }
+    }
+  )
+);
+import_passport_google_oauth20.Strategy.prototype.authorizationParams = function() {
+  return { prompt: "select_account" };
+};
+import_passport2.default.serializeUser((user, done) => {
+  done(null, user.id);
+});
+import_passport2.default.deserializeUser(async (id, done) => {
+  try {
+    const user = await prisma5.user.findUnique({ where: { id } });
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
+});
+var passportMiddleware_default = import_passport2.default;
+
+// src/index.ts
 var app = (0, import_express3.default)();
 var PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
@@ -21734,6 +22014,8 @@ app.use(
     }
   })
 );
+app.use(passportMiddleware_default.initialize());
+app.use(passportMiddleware_default.session());
 app.get("/", (req, res) => {
   res.send("Welcome, This is code champ server \u{1F525}.");
 });
