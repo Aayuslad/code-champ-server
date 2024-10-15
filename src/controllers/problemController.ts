@@ -166,6 +166,7 @@ export async function getFeedProblems(req: Request, res: Response) {
 
         return res.status(200).json(editedProblems);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -244,6 +245,7 @@ export async function getProblem(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -280,6 +282,7 @@ export async function putOngoingProblem(req: Request, res: Response) {
 
         return res.sendStatus(200);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -299,6 +302,7 @@ export async function getOngoingProblem(req: Request, res: Response) {
 
         return res.status(200).json(ongoingProblem);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -396,7 +400,6 @@ export async function checkBatchSubmission(req: Request, res: Response) {
         return res.json(editedResult);
     } catch (err) {
         console.log(err);
-
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -427,6 +430,7 @@ export async function getSubmissions(req: Request, res: Response) {
 
         return res.status(200).json(submission);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });

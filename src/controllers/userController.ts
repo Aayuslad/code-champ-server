@@ -151,6 +151,7 @@ export async function fetchUserProfile(req: Request, res: Response) {
 			avatar: user.avatar,
 		});
 	} catch (error) {
+		console.log(error);
 		res.status(500).json({
 			message: "Internal Server Error",
 		});
@@ -277,6 +278,7 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
 
 		return res.json(data);
 	} catch (error) {
+		console.log(error);
 		res.status(500).json({ message: "Internal Server Error" });
 	}
 }
