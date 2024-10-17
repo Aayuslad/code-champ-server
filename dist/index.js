@@ -21043,6 +21043,7 @@ async function fetchUserProfile(req, res) {
       avatar: user.avatar
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21113,13 +21114,14 @@ async function fetchWholeUserProfile(req, res) {
         }
       }
     });
+    const solved = difficultyLevelCounts.Basic + difficultyLevelCounts.Easy + difficultyLevelCounts.Medium + difficultyLevelCounts.Hard;
     const data = {
       id: user.id,
       email: user.email,
       userName: user.userName,
       profileImg: user.profileImg,
       avatar: user.avatar,
-      solved: user.Submission.length,
+      solved,
       points: user.points,
       rank: userRank + 1,
       totalProblems,
@@ -21156,6 +21158,7 @@ async function fetchWholeUserProfile(req, res) {
     };
     return res.json(data);
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -21533,6 +21536,7 @@ async function contributeProblem(req, res) {
   var _a;
   try {
     const parsed = import_code_champ_common2.contributeProblemSchema.safeParse(req.body);
+    if (!parsed.success) console.log(parsed.error);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const {
       title,
@@ -21665,6 +21669,7 @@ async function getFeedProblems(req, res) {
     });
     return res.status(200).json(editedProblems);
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21731,6 +21736,7 @@ async function getProblem(req, res) {
     };
     return res.status(200).json(editedProblem);
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21763,6 +21769,7 @@ async function putOngoingProblem(req, res) {
     }
     return res.sendStatus(200);
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21780,6 +21787,7 @@ async function getOngoingProblem(req, res) {
     });
     return res.status(200).json(ongoingProblem);
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21895,6 +21903,7 @@ async function getSubmissions(req, res) {
     });
     return res.status(200).json(submission);
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
