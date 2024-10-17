@@ -17,6 +17,7 @@ const prisma = new PrismaClient();
 export async function contributeProblem(req: Request, res: Response) {
     try {
         const parsed = contributeProblemSchema.safeParse(req.body);
+        if (!parsed.success) console.log(parsed.error);
         if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
 
         const {
