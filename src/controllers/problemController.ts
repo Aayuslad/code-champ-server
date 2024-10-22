@@ -17,7 +17,6 @@ const prisma = new PrismaClient();
 export async function contributeProblem(req: Request, res: Response) {
     try {
         const parsed = contributeProblemSchema.safeParse(req.body);
-        if (!parsed.success) console.log(parsed.error);
         if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
 
         const {
@@ -167,7 +166,6 @@ export async function getFeedProblems(req: Request, res: Response) {
 
         return res.status(200).json(editedProblems);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -246,7 +244,6 @@ export async function getProblem(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -283,7 +280,6 @@ export async function putOngoingProblem(req: Request, res: Response) {
 
         return res.sendStatus(200);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -303,7 +299,6 @@ export async function getOngoingProblem(req: Request, res: Response) {
 
         return res.status(200).json(ongoingProblem);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -401,6 +396,7 @@ export async function checkBatchSubmission(req: Request, res: Response) {
         return res.json(editedResult);
     } catch (err) {
         console.log(err);
+
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -431,7 +427,6 @@ export async function getSubmissions(req: Request, res: Response) {
 
         return res.status(200).json(submission);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });

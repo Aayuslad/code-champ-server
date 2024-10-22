@@ -35,11 +35,13 @@ passport.use(
                         });
                     } else {
                         // Create new user if no existing one
+                        const userName = profile.emails?.[0]?.value.split("@")[0] as string;
                         user = await prisma.user.create({
                             data: {
                                 googleId: profile.id,
                                 email: profile.emails?.[0]?.value || "",
-                                userName: profile.displayName,
+                                name: profile.displayName,
+                                userName,
                                 avatar: profile.photos?.[0]?.value || null,
                             },
                         });
