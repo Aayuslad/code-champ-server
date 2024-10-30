@@ -20938,9 +20938,9 @@ var otpLength = 6;
 var PEPPER = process.env.BCRYPT_PEPPER;
 async function signupUser(req, res) {
   var _a, _b, _c, _d;
-  const { email, userName, password } = req.body;
+  const { email, name, userName, password } = req.body;
   try {
-    if (req.session.signupEmail && !email && !userName && !password) {
+    if (req.session.signupEmail && !email && !name && !userName && !password) {
       const otp2 = parseInt(
         Math.floor(1e5 + Math.random() * 9e5).toString().slice(0, otpLength)
       );
@@ -20951,6 +20951,7 @@ async function signupUser(req, res) {
       });
     }
     const parsed = import_code_champ_common.signupUserSchema.safeParse({
+      name,
       email,
       userName,
       password
@@ -20972,6 +20973,7 @@ async function signupUser(req, res) {
     );
     req.session.signupOTP = otp;
     req.session.signupEmail = email;
+    req.session.name = name;
     req.session.userName = userName;
     req.session.password = password;
     await sendOTPMail(email, otp);
@@ -20999,6 +21001,7 @@ async function verifySignupOTP(req, res) {
     const user = await prisma.user.create({
       data: {
         email: req.session.signupEmail,
+        name: req.session.name,
         userName: req.session.userName,
         password: hashedPassword
       }
@@ -21013,6 +21016,7 @@ async function verifySignupOTP(req, res) {
     });
     req.session.signupOTP = void 0;
     req.session.signupEmail = void 0;
+    req.session.name = void 0;
     req.session.userName = void 0;
     req.session.password = void 0;
     return res.json({ message: "Successfully signed up!" });
@@ -21043,7 +21047,6 @@ async function fetchUserProfile(req, res) {
       avatar: user.avatar
     });
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21057,13 +21060,15 @@ async function fetchWholeUserProfile(req, res) {
         select: {
           id: true,
           email: true,
+          name: true,
           userName: true,
           profileImg: true,
           avatar: true,
           points: true,
           rank: true,
           Submission: {
-            where: { status: "Accepted" },
+            where: { status: "Accepted", points: { not: 0 } },
+            distinct: ["problemId"],
             orderBy: { createdAt: "desc" },
             select: {
               languageId: true,
@@ -21094,7 +21099,6 @@ async function fetchWholeUserProfile(req, res) {
     const skillCounts = /* @__PURE__ */ new Map();
     const languageIdCounts = /* @__PURE__ */ new Map();
     const difficultyLevelCounts = { Basic: 0, Easy: 0, Medium: 0, Hard: 0 };
-    const solvedByDifficulty = { Basic: /* @__PURE__ */ new Set(), Easy: /* @__PURE__ */ new Set(), Medium: /* @__PURE__ */ new Set(), Hard: /* @__PURE__ */ new Set() };
     user.Submission.forEach((submission) => {
       const { problem, languageId } = submission;
       const { difficultyLevel, topicTags } = problem;
@@ -21102,10 +21106,7 @@ async function fetchWholeUserProfile(req, res) {
         skillCounts.set(tag.content, (skillCounts.get(tag.content) || 0) + 1);
       });
       languageIdCounts.set(languageId, (languageIdCounts.get(languageId) || 0) + 1);
-      if (!solvedByDifficulty[difficultyLevel].has(problem.id)) {
-        difficultyLevelCounts[difficultyLevel]++;
-        solvedByDifficulty[difficultyLevel].add(problem.id);
-      }
+      difficultyLevelCounts[difficultyLevel]++;
     });
     const userRank = await prisma.user.count({
       where: {
@@ -21118,6 +21119,7 @@ async function fetchWholeUserProfile(req, res) {
     const data = {
       id: user.id,
       email: user.email,
+      name: user.name,
       userName: user.userName,
       profileImg: user.profileImg,
       avatar: user.avatar,
@@ -21133,32 +21135,27 @@ async function fetchWholeUserProfile(req, res) {
       easySolvedCount: difficultyLevelCounts.Easy,
       mediumSolvedCount: difficultyLevelCounts.Medium,
       hardSolvedCount: difficultyLevelCounts.Hard,
-      basicSolved: Array.from(solvedByDifficulty.Basic, (id) => {
-        var _a;
-        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
-        return problem ? { id: problem.id, title: problem.title } : null;
-      }).filter(Boolean),
-      easySolved: Array.from(solvedByDifficulty.Easy, (id) => {
-        var _a;
-        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
-        return problem ? { id: problem.id, title: problem.title } : null;
-      }).filter(Boolean),
-      mediumSolved: Array.from(solvedByDifficulty.Medium, (id) => {
-        var _a;
-        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
-        return problem ? { id: problem.id, title: problem.title } : null;
-      }).filter(Boolean),
-      hardSolved: Array.from(solvedByDifficulty.Hard, (id) => {
-        var _a;
-        const problem = (_a = user.Submission.find((s) => s.problem.id === id)) == null ? void 0 : _a.problem;
-        return problem ? { id: problem.id, title: problem.title } : null;
-      }).filter(Boolean),
+      basicSolved: user.Submission.filter((s) => s.problem.difficultyLevel === "Basic").map((s) => ({
+        id: s.problem.id,
+        title: s.problem.title
+      })),
+      easySolved: user.Submission.filter((s) => s.problem.difficultyLevel === "Easy").map((s) => ({
+        id: s.problem.id,
+        title: s.problem.title
+      })),
+      mediumSolved: user.Submission.filter((s) => s.problem.difficultyLevel === "Medium").map((s) => ({
+        id: s.problem.id,
+        title: s.problem.title
+      })),
+      hardSolved: user.Submission.filter((s) => s.problem.difficultyLevel === "Hard").map((s) => ({
+        id: s.problem.id,
+        title: s.problem.title
+      })),
       skillCounts: Array.from(skillCounts, ([skill, count]) => ({ skill, count })),
       languageIdCounts: Array.from(languageIdCounts, ([languageId, count]) => ({ languageId, count }))
     };
     return res.json(data);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -21334,7 +21331,8 @@ async function googleOneTapController(req, res) {
     const googleId = payload == null ? void 0 : payload.sub;
     const email = payload == null ? void 0 : payload.email;
     const name = payload == null ? void 0 : payload.name;
-    const picture = payload == null ? void 0 : payload.picture;
+    const userName = payload.email.split("@")[0];
+    const avatar = payload == null ? void 0 : payload.picture;
     let user = await prisma.user.findUnique({
       where: { googleId }
     });
@@ -21345,15 +21343,16 @@ async function googleOneTapController(req, res) {
       if (existingUserByEmail) {
         user = await prisma.user.update({
           where: { email },
-          data: { googleId, avatar: picture }
+          data: { googleId, avatar }
         });
       } else {
         user = await prisma.user.create({
           data: {
             email,
-            userName: name,
+            name,
+            userName,
             googleId,
-            avatar: picture
+            avatar
           }
         });
       }
@@ -21395,7 +21394,17 @@ async function authMiddleware(req, res, next) {
         id: decodedToken.id
       }
     });
-    req.user = user;
+    if (!user) {
+      return res.status(401).json({ message: "user not found" });
+    }
+    req.user = {
+      id: user.id,
+      name: user.name,
+      userName: user.userName,
+      email: user.email,
+      password: user.password || "",
+      profileImg: user.profileImg
+    };
     next();
   } catch {
     res.status(500).json({
@@ -21462,6 +21471,7 @@ async function generateUniqueSlug(title) {
 
 // src/services/awsS3.ts
 var import_client_s3 = require("@aws-sdk/client-s3");
+var import_s3_request_presigner = require("@aws-sdk/s3-request-presigner");
 var s3 = new import_client_s3.S3Client({
   region: process.env.AWS_REGION,
   credentials: {
@@ -21502,32 +21512,20 @@ var uploadJsonToS3 = async (key, jsonData) => {
     const response = await s3.send(command);
     return response;
   } catch (err) {
-    console.error("Error uploading object to S3:", err);
-    throw err;
+    console.log("Error uploading object to S3:", err);
   }
 };
-
-// src/services/stdinGenerator.ts
-var stdinGenerator = (functionStructure, testCase) => {
-  const stdin = functionStructure.parameters.map((parameter, index) => {
-    var _a, _b;
-    if (parameter.category === "derived" && parameter.derivedType) {
-      if (parameter.derivedType === "Array") {
-        const stdin2 = (_a = testCase == null ? void 0 : testCase.input[index]) == null ? void 0 : _a.value;
-        if (stdin2) {
-          const values = stdin2.split(",").map((item) => item.trim());
-          const arraySize = values.length;
-          return `${arraySize}
-${values.join(" ")}
-`;
-        }
-        return "0\n";
-      }
-    } else {
-      return `${(_b = testCase == null ? void 0 : testCase.input[index]) == null ? void 0 : _b.value}`;
-    }
-  }).join("\n");
-  return stdin;
+var getSignedS3URL = async (key) => {
+  try {
+    const command = new import_client_s3.GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key
+    });
+    const url = await (0, import_s3_request_presigner.getSignedUrl)(s3, command, { expiresIn: 3600 });
+    return url;
+  } catch (error) {
+    console.log("Error signing URL");
+  }
 };
 
 // src/controllers/problemController.ts
@@ -21536,7 +21534,6 @@ async function contributeProblem(req, res) {
   var _a;
   try {
     const parsed = import_code_champ_common2.contributeProblemSchema.safeParse(req.body);
-    if (!parsed.success) console.log(parsed.error);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const {
       title,
@@ -21669,7 +21666,6 @@ async function getFeedProblems(req, res) {
     });
     return res.status(200).json(editedProblems);
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21736,7 +21732,6 @@ async function getProblem(req, res) {
     };
     return res.status(200).json(editedProblem);
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21769,7 +21764,6 @@ async function putOngoingProblem(req, res) {
     }
     return res.sendStatus(200);
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21786,6 +21780,45 @@ async function getOngoingProblem(req, res) {
       }
     });
     return res.status(200).json(ongoingProblem);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function testSolution(req, res) {
+  try {
+    const parsed = import_code_champ_common2.sumitSolutionSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
+    const { problemId, languageId, solutionCode } = parsed.data;
+    const problem = await prisma4.problem.findFirst({
+      where: { id: problemId },
+      select: {
+        id: true,
+        sampleTestCasesKey: true,
+        functionStructure: true,
+        submissionCode: true,
+        difficultyLevel: true
+      }
+    });
+    if (!problem) return res.status(404).json({ message: "Problem not found" });
+    const parcedSubmissionCode = JSON.parse(problem.submissionCode);
+    const solutionCodee = parcedSubmissionCode[idToLanguageMappings[languageId]];
+    const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
+    const encodedFinalCode = Buffer.from(finalCode).toString("base64");
+    const id = Math.random().toString(36).substring(7);
+    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+      submissionId: id,
+      languageId,
+      code: encodedFinalCode,
+      functionStructure: problem.functionStructure,
+      testCaseURL: await getSignedS3URL(problem.sampleTestCasesKey)
+    });
+    res.status(200).json({
+      message: "Solution submitted successfully",
+      taskId: response.data.batchTaskId
+    });
+    return;
   } catch (err) {
     console.log(err);
     res.status(500).json({
@@ -21810,8 +21843,6 @@ async function submitSolution(req, res) {
       }
     });
     if (!problem) return res.status(404).json({ message: "Problem not found" });
-    const testCases = JSON.parse(await getObjectFromS3(problem.testCasesKey));
-    const functionStructure = JSON.parse(problem.functionStructure);
     const parcedSubmissionCode = JSON.parse(problem.submissionCode);
     const solutionCodee = parcedSubmissionCode[idToLanguageMappings[languageId]];
     const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
@@ -21828,15 +21859,11 @@ async function submitSolution(req, res) {
     });
     const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
       submissionId: submission.id,
-      callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
       languageId,
       code: encodedFinalCode,
-      tasks: testCases.map((testCase, index) => ({
-        id: index,
-        stdin: stdinGenerator(functionStructure, testCase),
-        expectedOutput: testCase.output,
-        inputs: JSON.stringify(testCase.input)
-      }))
+      callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
+      functionStructure: problem.functionStructure,
+      testCaseURL: await getSignedS3URL(problem.testCasesKey)
     });
     res.status(200).json({
       message: "Solution submitted successfully",
@@ -21903,7 +21930,6 @@ async function getSubmissions(req, res) {
     });
     return res.status(200).json(submission);
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -21915,6 +21941,7 @@ var problemRouter = (0, import_express2.Router)();
 problemRouter.get("/bulk", getFeedProblems);
 problemRouter.post("/contribute", authMiddleware, contributeProblem);
 problemRouter.post("/submit", authMiddleware, submitSolution);
+problemRouter.post("/test", authMiddleware, testSolution);
 problemRouter.get("/submission/:problemId", authMiddleware, getSubmissions);
 problemRouter.get("/check/:taskId/:problemId", authMiddleware, checkBatchSubmission);
 problemRouter.put("/ongoing-problem", authMiddleware, putOngoingProblem);
@@ -21941,7 +21968,7 @@ import_passport2.default.use(
       callbackURL: "/user/auth/google/callback"
     },
     async (accessToken, refreshToken, profile, done) => {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
       try {
         let user = await prisma5.user.findUnique({
           where: { googleId: profile.id }
@@ -21959,12 +21986,14 @@ import_passport2.default.use(
               }
             });
           } else {
+            const userName = (_h = (_g = profile.emails) == null ? void 0 : _g[0]) == null ? void 0 : _h.value.split("@")[0];
             user = await prisma5.user.create({
               data: {
                 googleId: profile.id,
-                email: ((_h = (_g = profile.emails) == null ? void 0 : _g[0]) == null ? void 0 : _h.value) || "",
-                userName: profile.displayName,
-                avatar: ((_j = (_i = profile.photos) == null ? void 0 : _i[0]) == null ? void 0 : _j.value) || null
+                email: ((_j = (_i = profile.emails) == null ? void 0 : _i[0]) == null ? void 0 : _j.value) || "",
+                name: profile.displayName,
+                userName,
+                avatar: ((_l = (_k = profile.photos) == null ? void 0 : _k[0]) == null ? void 0 : _l.value) || null
               }
             });
           }
