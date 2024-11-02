@@ -426,15 +426,15 @@ export async function checkBatchSubmission(req: Request, res: Response) {
         const result = await axios.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
 
         const editedResult = {
-            ...result.data,
-            problemId,
-            tasks:
-                result.data.tasks?.map((task: any) => ({
-                    ...task,
-                    expectedOutput: JSON.parse(task.expectedOutput),
-                    inputs: JSON.parse(task.inputs),
-                })) || [],
-        };
+			...result.data,
+			problemId,
+			tasks:
+				result.data.tasks?.map((task: any) => ({
+					...task,
+					expectedOutput: task.expectedOutput,
+					inputs: JSON.parse(task.inputs),
+				})) || [],
+		};
         return res.json(editedResult);
     } catch (err) {
         console.log(err);
