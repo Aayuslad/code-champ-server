@@ -21544,9 +21544,7 @@ async function contributeProblem(req, res) {
       functionStructure,
       topicTags,
       hints,
-      constraints,
-      boilerplateCode,
-      submissionCode
+      constraints
     } = parsed.data;
     const slug = await generateUniqueSlug(title);
     await Promise.all([
@@ -21895,7 +21893,7 @@ async function checkBatchSubmission(req, res) {
       problemId,
       tasks: ((_a = result.data.tasks) == null ? void 0 : _a.map((task) => ({
         ...task,
-        expectedOutput: JSON.parse(task.expectedOutput),
+        expectedOutput: task.expectedOutput,
         inputs: JSON.parse(task.inputs)
       }))) || []
     };
@@ -21935,6 +21933,135 @@ async function getSubmissions(req, res) {
     });
   }
 }
+async function getProblemsBySearch(req, res) {
+  const searchQurey = req.query.query;
+  try {
+    const isNumber = !isNaN(parseInt(searchQurey));
+    let problems = [];
+    if (isNumber) {
+      problems = await prisma4.problem.findMany({
+        where: {
+          problemNumber: parseInt(searchQurey)
+        },
+        select: {
+          id: true,
+          problemNumber: true,
+          title: true,
+          difficultyLevel: true
+        }
+      });
+    } else {
+      problems = await prisma4.problem.findMany({
+        where: {
+          title: {
+            contains: searchQurey
+          }
+        },
+        select: {
+          id: true,
+          problemNumber: true,
+          title: true,
+          difficultyLevel: true
+        }
+      });
+    }
+    return res.status(200).json(problems);
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function getProblemForContribution(req, res) {
+  const { problemId } = req.params;
+  try {
+    const problem = await prisma4.problem.findFirst({
+      where: { id: problemId },
+      select: {
+        id: true,
+        problemNumber: true,
+        title: true,
+        description: true,
+        difficultyLevel: true,
+        sampleTestCasesKey: true,
+        testCasesKey: true,
+        constraints: { select: { content: true } },
+        topicTags: { select: { content: true } },
+        hints: { select: { content: true } },
+        testCasesCount: true,
+        functionStructure: true,
+        createdBy: {
+          select: {
+            id: true,
+            userName: true,
+            profileImg: true
+          }
+        },
+        submissionCount: true,
+        acceptedSubmissions: true
+      }
+    });
+    if (!problem) {
+      return res.status(404).json({ message: "Problem not found" });
+    }
+    const sampleTestCasesJson = await getObjectFromS3(problem.sampleTestCasesKey);
+    const testCasesJson = await getObjectFromS3(problem.testCasesKey);
+    const parsedsampleTestCases = JSON.parse(sampleTestCasesJson);
+    const parsedTestCases = JSON.parse(testCasesJson);
+    const acceptanceRate = problem.submissionCount > 0 ? (problem.acceptedSubmissions / problem.submissionCount * 100).toFixed(2) : "0.00";
+    const { sampleTestCasesKey, testCasesKey, ...editedProblem } = {
+      ...problem,
+      acceptanceRate,
+      constraints: problem.constraints.map((constraint) => constraint.content),
+      hints: problem.hints.map((hint) => hint.content),
+      topicTags: problem.topicTags.map((tag) => tag.content),
+      functionStructure: JSON.parse(problem.functionStructure),
+      exampleTestCases: parsedsampleTestCases,
+      testCases: parsedTestCases
+    };
+    return res.status(200).json(editedProblem);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function contrubuteTestCases(req, res) {
+  try {
+    const parsed = import_code_champ_common2.contrubuteTestCasesSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
+    const { problemId, contributedTestCases } = parsed.data;
+    const problem = await prisma4.problem.findFirst({
+      where: {
+        id: problemId
+      },
+      select: {
+        testCasesKey: true,
+        slug: true
+      }
+    });
+    if (!problem) return res.status(404).json({ message: "Problem not found" });
+    const testCasesJson = await getObjectFromS3(problem.testCasesKey);
+    const parsedTestCases = JSON.parse(testCasesJson);
+    const updatedTestCases = [...parsedTestCases, ...contributedTestCases];
+    await uploadJsonToS3(`problem-test-cases/${problem.slug}/testCases.json`, updatedTestCases);
+    await prisma4.problem.update({
+      where: {
+        id: problemId
+      },
+      data: {
+        testCasesCount: {
+          increment: contributedTestCases.length
+        }
+      }
+    });
+    return res.status(200).json({ message: "Test cases updated successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
 
 // src/routes/problemRouter.ts
 var problemRouter = (0, import_express2.Router)();
@@ -21946,7 +22073,10 @@ problemRouter.get("/submission/:problemId", authMiddleware, getSubmissions);
 problemRouter.get("/check/:taskId/:problemId", authMiddleware, checkBatchSubmission);
 problemRouter.put("/ongoing-problem", authMiddleware, putOngoingProblem);
 problemRouter.get("/ongoing-problem/:problemId/:userId", authMiddleware, getOngoingProblem);
+problemRouter.get("/search", getProblemsBySearch);
+problemRouter.get("/for-contribution/:problemId", getProblemForContribution);
 problemRouter.get("/:id", getProblem);
+problemRouter.post("/contribute-testcases", contrubuteTestCases);
 var problemRouter_default = problemRouter;
 
 // src/index.ts
