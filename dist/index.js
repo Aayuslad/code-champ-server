@@ -21805,7 +21805,7 @@ async function testSolution(req, res) {
     const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
     const encodedFinalCode = Buffer.from(finalCode).toString("base64");
     const id = Math.random().toString(36).substring(7);
-    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+    const response = await import_axios.default.post("http://codesandbox.code-champ.xyz/submit-batch-task", {
       submissionId: id,
       languageId,
       code: encodedFinalCode,
@@ -21855,7 +21855,7 @@ async function submitSolution(req, res) {
         createdById: ((_a = req.user) == null ? void 0 : _a.id) || ""
       }
     });
-    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+    const response = await import_axios.default.post("http://codesandbox.code-champ.xyz/submit-batch-task", {
       submissionId: submission.id,
       languageId,
       code: encodedFinalCode,
@@ -21887,7 +21887,7 @@ async function checkBatchSubmission(req, res) {
   var _a;
   try {
     const { taskId, problemId } = req.params;
-    const result = await import_axios.default.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
+    const result = await import_axios.default.get(`http://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
     const editedResult = {
       ...result.data,
       problemId,
