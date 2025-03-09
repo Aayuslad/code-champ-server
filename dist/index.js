@@ -20858,7 +20858,7 @@ var require_body_parser = __commonJS({
 });
 
 // src/index.ts
-var import_express3 = __toESM(require("express"));
+var import_express5 = __toESM(require("express"));
 var import_config = require("dotenv/config");
 var import_cookie_parser = __toESM(require("cookie-parser"));
 
@@ -21182,6 +21182,11 @@ async function signinUser(req, res) {
       });
     }
     const passwordWithPepper = password + PEPPER;
+    if (!user.password) {
+      return res.status(400).json({
+        message: "Please sign in with Google as you registered using Google"
+      });
+    }
     const isPasswordCorrect = await import_bcrypt.default.compare(passwordWithPepper, user.password);
     if (!isPasswordCorrect) {
       return res.status(400).json({
@@ -21197,7 +21202,8 @@ async function signinUser(req, res) {
       // 30 days in milliseconds
     });
     return res.json({ message: "Successfully signed in!" });
-  } catch {
+  } catch (error) {
+    console.error("Error during sign in:", error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -22151,8 +22157,740 @@ import_passport2.default.deserializeUser(async (id, done) => {
 });
 var passportMiddleware_default = import_passport2.default;
 
+// src/routes/contestRouter.ts
+var import_express3 = require("express");
+
+// src/controllers/contestController.ts
+var import_code_champ_common3 = require("@aayushlad/code-champ-common");
+
+// node_modules/uuid/dist/esm-node/rng.js
+var import_crypto = __toESM(require("crypto"));
+var rnds8Pool = new Uint8Array(256);
+var poolPtr = rnds8Pool.length;
+function rng() {
+  if (poolPtr > rnds8Pool.length - 16) {
+    import_crypto.default.randomFillSync(rnds8Pool);
+    poolPtr = 0;
+  }
+  return rnds8Pool.slice(poolPtr, poolPtr += 16);
+}
+
+// node_modules/uuid/dist/esm-node/stringify.js
+var byteToHex = [];
+for (let i = 0; i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
+}
+
+// node_modules/uuid/dist/esm-node/native.js
+var import_crypto2 = __toESM(require("crypto"));
+var native_default = {
+  randomUUID: import_crypto2.default.randomUUID
+};
+
+// node_modules/uuid/dist/esm-node/v4.js
+function v4(options, buf, offset) {
+  if (native_default.randomUUID && !buf && !options) {
+    return native_default.randomUUID();
+  }
+  options = options || {};
+  const rnds = options.random || (options.rng || rng)();
+  rnds[6] = rnds[6] & 15 | 64;
+  rnds[8] = rnds[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0; i < 16; ++i) {
+      buf[offset + i] = rnds[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(rnds);
+}
+var v4_default = v4;
+
+// src/controllers/contestController.ts
+var import_client6 = require("@prisma/client");
+var prisma6 = new import_client6.PrismaClient();
+var createContest = async (req, res) => {
+  var _a;
+  try {
+    const parced = import_code_champ_common3.createContestSchma.safeParse(req.body);
+    if (!parced.success) {
+      return res.status(400).json({ error: parced.error });
+    }
+    const { title, description, startTime, endTime, visibility, problems, points } = parced.data;
+    const currentDate = /* @__PURE__ */ new Date();
+    if (new Date(startTime) <= currentDate) {
+      return res.status(400).json({ message: "Start time must be after current time" });
+    }
+    if (new Date(endTime) <= new Date(startTime)) {
+      return res.status(400).json({ message: "End time must be after start time" });
+    }
+    const uniqueTitle = title + " " + Date.now();
+    await prisma6.contest.create({
+      data: {
+        title: uniqueTitle,
+        description,
+        startTime,
+        endTime,
+        status: "Scheduled",
+        visibility,
+        linkToken: v4_default(),
+        createdById: (_a = req == null ? void 0 : req.user) == null ? void 0 : _a.id,
+        points,
+        problems: {
+          create: problems.map((problem) => ({
+            problemId: problem.problemId,
+            points: problem.points,
+            order: problem.order
+          }))
+        }
+      }
+    });
+    return res.status(201).json({ message: "Contest created successfully" });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var getFeedContests = async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const upcomming = await prisma6.contest.findMany({
+      where: {
+        visibility: "Public",
+        status: "Scheduled"
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        startTime: true,
+        endTime: true
+      }
+    });
+    const live = await prisma6.contest.findMany({
+      where: {
+        visibility: "Public",
+        status: "Ongoing"
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        startTime: true,
+        endTime: true
+      }
+    });
+    const completed = await prisma6.contest.findMany({
+      where: {
+        visibility: "Public",
+        status: "Completed"
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        startTime: true,
+        endTime: true
+      }
+    });
+    let completedByYou, registerd;
+    if (userId) {
+      completedByYou = await prisma6.contest.findMany({
+        where: {
+          participants: {
+            some: {
+              userId
+            }
+          },
+          status: "Completed"
+        },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          startTime: true,
+          endTime: true
+        }
+      });
+      registerd = await prisma6.contest.findMany({
+        where: {
+          participants: {
+            some: {
+              userId
+            }
+          },
+          status: {
+            in: ["Ongoing", "Scheduled"]
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          startTime: true,
+          endTime: true
+        }
+      });
+    }
+    return res.status(200).json({
+      upcomming,
+      live,
+      registerd,
+      completed,
+      completedByYou
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var getContestRegisterDetails = async (req, res) => {
+  const { contestId, userId } = req.params;
+  try {
+    let contest = await prisma6.contest.findUnique({
+      where: {
+        id: contestId
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+        createdBy: {
+          select: {
+            id: true,
+            userName: true,
+            profileImg: true,
+            avatar: true
+          }
+        }
+      }
+    });
+    if (!contest) {
+      return res.status(500).json({ message: "Contest not found" });
+    }
+    const existingParticipant = userId ? await prisma6.contestParticipant.findFirst({
+      where: {
+        contestId,
+        userId
+      }
+    }) : null;
+    const contestWithRegistration = {
+      ...contest,
+      isRegistered: existingParticipant ? true : false
+    };
+    return res.status(200).json(contestWithRegistration);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var registerUserForContest = async (req, res) => {
+  var _a, _b;
+  try {
+    const { contestId } = req.params;
+    if (!contestId) {
+      return res.status(400).json({ message: "Invalid contest ID" });
+    }
+    const existingParticipant = await prisma6.contestParticipant.findFirst({
+      where: {
+        contestId,
+        userId: (_a = req == null ? void 0 : req.user) == null ? void 0 : _a.id
+      }
+    });
+    if (existingParticipant) {
+      return res.status(400).json({ message: "You have already registered for this contest" });
+    }
+    await prisma6.contestParticipant.create({
+      data: {
+        contestId,
+        userId: (_b = req == null ? void 0 : req.user) == null ? void 0 : _b.id,
+        score: 0
+      }
+    });
+    return res.status(200).json({ message: "User registered for contest" });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var getLiveContestDetails = async (req, res) => {
+  var _a, _b, _c;
+  try {
+    const { contestId } = req.params;
+    if (!contestId) {
+      return res.status(400).json({ message: "invalid contest Id" });
+    }
+    const isParticipant = await prisma6.contestParticipant.findFirst({
+      where: {
+        contestId,
+        userId: (_a = req.user) == null ? void 0 : _a.id
+      }
+    });
+    if (!isParticipant) {
+      return res.status(400).json({ message: "You haven't registerd" });
+    }
+    const liveContest = await prisma6.contest.findFirst({
+      where: {
+        id: contestId,
+        status: "Ongoing"
+      },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        problems: {
+          select: {
+            id: true,
+            points: true,
+            order: true,
+            problem: {
+              select: {
+                title: true,
+                id: true
+              }
+            }
+          }
+        },
+        participants: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                profileImg: true,
+                avatar: true,
+                userName: true
+              }
+            },
+            score: true
+          }
+        }
+      }
+    });
+    const { participants, ...flatenedContest } = {
+      ...liveContest,
+      participantId: isParticipant == null ? void 0 : isParticipant.id,
+      yourScore: isParticipant == null ? void 0 : isParticipant.score,
+      problems: (liveContest == null ? void 0 : liveContest.problems) ? await Promise.all(
+        liveContest.problems.map(async (problem) => {
+          const isSolved = await prisma6.contestSubmission.findFirst({
+            where: {
+              contestProblemId: problem.id,
+              createdByParticipantId: isParticipant == null ? void 0 : isParticipant.id,
+              status: "Accepted"
+            }
+          });
+          return {
+            points: problem.points,
+            order: problem.order,
+            contestProblemId: problem.id,
+            problemId: problem.problem.id,
+            title: problem.problem.title,
+            isSolved: isSolved ? true : false
+          };
+        })
+      ) : [],
+      leaderBoard: ((_b = liveContest == null ? void 0 : liveContest.participants) == null ? void 0 : _b.map((participant) => {
+        return {
+          userId: participant.user.id,
+          userName: participant.user.userName || "",
+          profileImg: participant.user.profileImg || "",
+          avatar: participant.user.avatar || "",
+          score: participant.score
+        };
+      })) || []
+    };
+    (_c = flatenedContest.problems) == null ? void 0 : _c.forEach((problem) => {
+      if ("problem" in problem) {
+        delete problem.problem;
+      }
+    });
+    return res.status(200).json(flatenedContest);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var getLeaderBard = async (req, res) => {
+  const { contestId } = req.params;
+  try {
+    const leaderBoard = await prisma6.contestParticipant.findMany({
+      where: {
+        contestId
+      },
+      select: {
+        user: {
+          select: {
+            id: true,
+            userName: true,
+            avatar: true,
+            profileImg: true
+          }
+        },
+        score: true
+      },
+      orderBy: {
+        score: "desc"
+      }
+    });
+    const normalizedLeaderBoard = leaderBoard.map((entry) => ({
+      userId: entry.user.id,
+      userName: entry.user.userName,
+      profileImg: entry.user.profileImg,
+      avatar: entry.user.avatar,
+      score: entry.score
+    }));
+    return res.status(200).json(normalizedLeaderBoard);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+
+// src/routes/contestRouter.ts
+var contestRouter = (0, import_express3.Router)();
+contestRouter.post("/create", authMiddleware, createContest);
+contestRouter.get("/feed/:userId", getFeedContests);
+contestRouter.post("/register/:contestId", authMiddleware, registerUserForContest);
+contestRouter.get("/register-details/:contestId/:userId", getContestRegisterDetails);
+contestRouter.get("/live-contest/:contestId", authMiddleware, getLiveContestDetails);
+contestRouter.get("/live-contest/leader-board/:contestId", getLeaderBard);
+var contestRouter_default = contestRouter;
+
+// src/services/cronJobs.ts
+var import_node_cron = __toESM(require("node-cron"));
+var import_client7 = require("@prisma/client");
+var prisma7 = new import_client7.PrismaClient();
+var updateContestStatus = async () => {
+  const now = /* @__PURE__ */ new Date();
+  try {
+    await prisma7.contest.updateMany({
+      where: {
+        status: "Scheduled",
+        startTime: { lte: now }
+        // startTime <= now
+      },
+      data: { status: "Ongoing" }
+    });
+    await prisma7.contest.updateMany({
+      where: {
+        status: "Ongoing",
+        endTime: { lte: now }
+        // endTime <= now
+      },
+      data: { status: "Completed" }
+    });
+    console.log("Contest statuses updated successfully.");
+  } catch (error) {
+    console.error("Error updating contest statuses:", error);
+  }
+};
+import_node_cron.default.schedule("* * * * *", updateContestStatus);
+console.log("Contest status cron job started...");
+
+// src/routes/contestProblemRouter.ts
+var import_express4 = require("express");
+
+// src/controllers/contestProblemController.ts
+var import_client8 = require("@prisma/client");
+var import_code_champ_common4 = require("@aayushlad/code-champ-common");
+var import_axios2 = __toESM(require("axios"));
+var prisma8 = new import_client8.PrismaClient();
+async function getContestProblem(req, res) {
+  var _a, _b, _c;
+  const { contestProblemId, participantId } = req.params;
+  try {
+    const problem = await prisma8.contestProblem.findFirst({
+      where: { id: contestProblemId },
+      select: {
+        id: true,
+        order: true,
+        points: true,
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            difficultyLevel: true,
+            sampleTestCasesKey: true,
+            constraints: { select: { content: true } },
+            topicTags: { select: { content: true } },
+            hints: { select: { content: true } },
+            boilerplateCode: true,
+            testCasesCount: true,
+            createdBy: {
+              select: {
+                id: true,
+                userName: true,
+                profileImg: true
+              }
+            }
+          }
+        }
+      }
+    });
+    const { id, ...updatedProblem } = {
+      ...problem == null ? void 0 : problem.problem,
+      contestProblemId: problem == null ? void 0 : problem.id,
+      problemId: problem == null ? void 0 : problem.problem.id,
+      order: problem == null ? void 0 : problem.order,
+      points: problem == null ? void 0 : problem.points
+    };
+    console.log(updatedProblem);
+    if (!problem) {
+      return res.status(404).json({ message: "Problem not found" });
+    }
+    let solutions = "";
+    if (participantId && participantId !== "undefined") {
+      const ongoingProblem = await prisma8.ongoingContestProblem.findFirst({
+        where: {
+          participantId,
+          contestProblemId
+        },
+        select: {
+          solutions: true
+        }
+      });
+      solutions = (ongoingProblem == null ? void 0 : ongoingProblem.solutions) || "";
+    }
+    const parsedSolutions = JSON.parse(solutions || "[]");
+    const sampleTestCasesJson = await getObjectFromS3(updatedProblem.sampleTestCasesKey);
+    const parsedTestCases = JSON.parse(sampleTestCasesJson);
+    const { sampleTestCasesKey, ...editedProblem } = {
+      ...updatedProblem,
+      exampleTestCases: parsedTestCases,
+      constraints: (_a = updatedProblem == null ? void 0 : updatedProblem.constraints) == null ? void 0 : _a.map((constraint) => constraint.content),
+      hints: (_b = updatedProblem == null ? void 0 : updatedProblem.hints) == null ? void 0 : _b.map((hint) => hint.content),
+      topicTags: (_c = updatedProblem == null ? void 0 : updatedProblem.topicTags) == null ? void 0 : _c.map((tag) => tag.content),
+      boilerplateCode: JSON.parse(updatedProblem.boilerplateCode),
+      solutions: parsedSolutions
+    };
+    return res.status(200).json(editedProblem);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function putOngoingContestProblem(req, res) {
+  try {
+    const parsed = import_code_champ_common4.putOngoingContestProblemSchma.safeParse(req.body);
+    if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
+    const { contestProblemId, participantId, solutions } = parsed.data;
+    const existingProblem = await prisma8.ongoingContestProblem.findFirst({
+      where: { contestProblemId, participantId }
+    });
+    if (!existingProblem) {
+      await prisma8.ongoingContestProblem.create({
+        data: {
+          contestProblemId,
+          participantId,
+          solutions
+        }
+      });
+    } else {
+      await prisma8.ongoingContestProblem.update({
+        where: { id: existingProblem.id },
+        data: {
+          solutions
+        }
+      });
+    }
+    return res.sendStatus(200);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function getOngoingContestProblem(req, res) {
+  const { contestProblemId, participantId } = req.params;
+  try {
+    const ongoingContestProblem = await prisma8.ongoingContestProblem.findFirst({
+      where: { participantId, contestProblemId },
+      select: {
+        solutions: true
+      }
+    });
+    return res.status(200).json(ongoingContestProblem);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function testContestSolution(req, res) {
+  try {
+    const parsed = import_code_champ_common4.sumitContestSolutionSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
+    const { problemId, languageId, solutionCode } = parsed.data;
+    const problem = await prisma8.problem.findFirst({
+      where: { id: problemId },
+      select: {
+        id: true,
+        sampleTestCasesKey: true,
+        functionStructure: true,
+        submissionCode: true,
+        difficultyLevel: true
+      }
+    });
+    if (!problem) return res.status(404).json({ message: "Problem not found" });
+    const parcedSubmissionCode = JSON.parse(problem.submissionCode);
+    const solutionCodee = parcedSubmissionCode[idToLanguageMappings[languageId]];
+    const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
+    const encodedFinalCode = Buffer.from(finalCode).toString("base64");
+    const id = Math.random().toString(36).substring(7);
+    const response = await import_axios2.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+      submissionId: id,
+      languageId,
+      code: encodedFinalCode,
+      functionStructure: problem.functionStructure,
+      testCaseURL: await getSignedS3URL(problem.sampleTestCasesKey)
+    });
+    res.status(200).json({
+      message: "Solution submitted successfully",
+      taskId: response.data.batchTaskId
+    });
+    return;
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function submitContestSolution(req, res) {
+  try {
+    const parsed = import_code_champ_common4.sumitContestSolutionSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
+    const { problemId, contestProblemId, participantId, languageId, solutionCode } = parsed.data;
+    const problem = await prisma8.problem.findFirst({
+      where: { id: problemId },
+      select: {
+        id: true,
+        testCasesKey: true,
+        functionStructure: true,
+        submissionCode: true,
+        difficultyLevel: true
+      }
+    });
+    if (!problem) return res.status(404).json({ message: "Problem not found" });
+    const parcedSubmissionCode = JSON.parse(problem.submissionCode);
+    const solutionCodee = parcedSubmissionCode[idToLanguageMappings[languageId]];
+    const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
+    const encodedFinalCode = Buffer.from(finalCode).toString("base64");
+    const submission = await prisma8.contestSubmission.create({
+      data: {
+        contestProblemId,
+        code: solutionCode,
+        languageId: languageId.toString(),
+        status: "Pending",
+        difficultyLevel: problem.difficultyLevel,
+        createdByParticipantId: participantId
+      }
+    });
+    const response = await import_axios2.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+      submissionId: submission.id,
+      languageId,
+      code: encodedFinalCode,
+      callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-contest-task-callback`,
+      functionStructure: problem.functionStructure,
+      testCaseURL: await getSignedS3URL(problem.testCasesKey)
+    });
+    res.status(200).json({
+      message: "Solution submitted successfully",
+      taskId: response.data.batchTaskId
+    });
+    return;
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function checkContestBatchSubmission(req, res) {
+  var _a;
+  try {
+    const { taskId, contestProblemId } = req.params;
+    const result = await import_axios2.default.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
+    const editedResult = {
+      ...result.data,
+      contestProblemId,
+      tasks: ((_a = result.data.tasks) == null ? void 0 : _a.map((task) => ({
+        ...task,
+        expectedOutput: task.expectedOutput,
+        inputs: JSON.parse(task.inputs)
+      }))) || []
+    };
+    return res.json(editedResult);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+async function getContestSubmissions(req, res) {
+  try {
+    const { contestProblemId, participantId } = req.params;
+    const submission = await prisma8.contestSubmission.findMany({
+      where: {
+        createdByParticipantId: participantId,
+        contestProblemId
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      select: {
+        id: true,
+        code: true,
+        languageId: true,
+        status: true,
+        createdAt: true,
+        points: true
+      }
+    });
+    return res.status(200).json(submission);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+}
+
+// src/routes/contestProblemRouter.ts
+var contestProblemRouter = (0, import_express4.Router)();
+contestProblemRouter.get("/:contestProblemId/:participantId", authMiddleware, getContestProblem);
+contestProblemRouter.put("/ongoing-problem", authMiddleware, putOngoingContestProblem);
+contestProblemRouter.get("/ongoing-problem/:contestProblemId/:participantId", authMiddleware, getOngoingContestProblem);
+contestProblemRouter.post("/test", authMiddleware, testContestSolution);
+contestProblemRouter.post("/submit", authMiddleware, submitContestSolution);
+contestProblemRouter.get("/check/:taskId/:contestProblemId", authMiddleware, checkContestBatchSubmission);
+contestProblemRouter.get("/submissions/:contestProblemId/:participantId", authMiddleware, getContestSubmissions);
+var contestProblemRouter_default = contestProblemRouter;
+
 // src/index.ts
-var app = (0, import_express3.default)();
+var app = (0, import_express5.default)();
 var PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 app.use(
@@ -22163,10 +22901,10 @@ app.use(
   })
 );
 app.use(import_body_parser.default.json({ limit: "50mb" }));
-app.use(import_express3.default.json());
+app.use(import_express5.default.json());
 app.use((0, import_cookie_parser.default)());
 app.disable("x-powerd-by");
-app.use(import_express3.default.urlencoded({ extended: true }));
+app.use(import_express5.default.urlencoded({ extended: true }));
 app.use((0, import_morgan.default)("tiny"));
 app.use(
   (0, import_express_session.default)({
@@ -22189,6 +22927,8 @@ app.get("/", (req, res) => {
 });
 app.use("/user", userRoutes_default);
 app.use("/problem", problemRouter_default);
+app.use("/contest", contestRouter_default);
+app.use("/contest-problem", contestProblemRouter_default);
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

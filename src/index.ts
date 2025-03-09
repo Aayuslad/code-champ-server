@@ -8,6 +8,9 @@ import session from "express-session";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 import passport from "./middlewares/passportMiddleware";
+import contestRouter from "./routes/contestRouter";
+import "./services/cronJobs";
+import contestProblemRouter from "./routes/contestProblemRouter";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -48,7 +51,9 @@ app.get("/", (req, res) => {
 
 app.use("/user", userRouter);
 app.use("/problem", problemRouter);
-
+app.use("/contest", contestRouter);
+app.use("/contest-problem", contestProblemRouter);
+    
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

@@ -14,19 +14,21 @@ datasource db {
 }
 
 model User {
-  id             String           @id @default(uuid())
-  name           String           @default("") @db.VarChar(50)
-  userName       String           @unique @db.VarChar(50)
-  email          String           @unique
-  password       String?
-  profileImg     String?
-  googleId       String?          @unique
-  avatar         String?
-  points         Int              @default(0)
-  rank           Int              @default(0)
-  Problem        Problem[]
-  Submission     Submission[]
-  OngoingProblem OngoingProblem[]
+  id                 String               @id @default(uuid())
+  name               String               @default("") @db.VarChar(50)
+  userName           String               @unique @db.VarChar(50)
+  email              String               @unique
+  password           String?
+  profileImg         String?
+  googleId           String?              @unique
+  avatar             String?
+  points             Int                  @default(0)
+  rank               Int                  @default(0)
+  Problem            Problem[]
+  Submission         Submission[]
+  OngoingProblem     OngoingProblem[]
+  Contest            Contest[]
+  ContestParticipant ContestParticipant[]
 }
 
 model Problem {
@@ -53,6 +55,8 @@ model Problem {
   createdById         String
   createdBy           User            @relation(fields: [createdById], references: [id])
   submissions         Submission[]
+
+  ContestProblem ContestProblem[]
 }
 
 model OngoingProblem {
@@ -97,6 +101,71 @@ model Submission {
   createdBy       User             @relation(fields: [createdById], references: [id])
 }
 
+model Contest {
+  id           String               @id @default(uuid())
+  title        String               @db.VarChar(100)
+  description  String               @db.VarChar(1000)
+  startTime    DateTime
+  endTime      DateTime
+  status       ContestStatus        @default(Scheduled)
+  visibility   ContestVisibility    @default(Public)
+  createdById  String
+  createdBy    User                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  problems     ContestProblem[]
+  participants ContestParticipant[]
+  linkToken    String               @unique
+  points       Int                  @default(0)
+  createdAt    DateTime             @default(now())
+}
+
+model ContestProblem {
+  id                String              @id @default(uuid())
+  contestId         String
+  contest           Contest             @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problemId         String
+  problem           Problem             @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  points            Int                 @default(0) // Points for solving this problem
+  order             Int                 @default(1)
+  ContestSubmission ContestSubmission[]
+
+  @@unique([contestId, problemId])
+}
+
+model OngoingContestProblem {
+  id               String             @id @default(uuid())
+  contestProblemId String
+  solutions        String
+  participantId    String
+  participant      ContestParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+model ContestSubmission {
+  id                     String             @id @default(uuid())
+  contestProblemId       String
+  contestProblem         ContestProblem     @relation(fields: [contestProblemId], references: [id], onDelete: Cascade)
+  code                   String
+  languageId             String
+  difficultyLevel        difficultyLevel
+  points                 Int?
+  status                 submissionStatus
+  createdAt              DateTime           @default(now())
+  createdByParticipantId String
+  createdByParticipant   ContestParticipant @relation(fields: [createdByParticipantId], references: [id], onDelete: Cascade)
+}
+
+model ContestParticipant {
+  id        String   @id @default(uuid())
+  contestId String
+  contest   Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score     Int      @default(0) // Participant's total score in the contest
+  joinedAt  DateTime @default(now())
+
+  OngoingContestProblem OngoingContestProblem[]
+  ContestSubmission     ContestSubmission[]
+}
+
 enum difficultyLevel {
   Basic
   Easy
@@ -111,4 +180,15 @@ enum submissionStatus {
   CompilationError  @map("Compilation Error")
   RunTimeError      @map("Run Time Error")
   TimeLimitExceeded @map("Time Limit Exceeded")
+}
+
+enum ContestStatus {
+  Scheduled
+  Ongoing
+  Completed
+}
+
+enum ContestVisibility {
+  Public
+  Private
 }

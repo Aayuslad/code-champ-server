@@ -311,7 +311,11 @@ export async function signinUser(req: Request, res: Response) {
         }
 
         const passwordWithPepper = password + PEPPER;
-        //@ts-ignore
+        if(!user.password) {
+            return res.status(400).json({
+                message: "Please sign in with Google as you registered using Google",
+            });
+        }
         const isPasswordCorrect = await bcrypt.compare(passwordWithPepper, user.password);
         if (!isPasswordCorrect) {
             return res.status(400).json({
@@ -329,7 +333,8 @@ export async function signinUser(req: Request, res: Response) {
         });
 
         return res.json({ message: "Successfully signed in!" });
-    } catch {
+    } catch (error) {
+        console.error("Error during sign in:", error);
         res.status(500).json({
             message: "Internal Server Error",
         });
