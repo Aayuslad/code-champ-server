@@ -174,7 +174,7 @@ export async function testContestSolution(req: Request, res: Response) {
 
         const id = Math.random().toString(36).substring(7);
 
-        const response = await axios.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+        const response = await axios.post(`${process.env.CODESANDBOX_HOST}/submit-batch-task`, {
             submissionId: id,
             languageId: languageId,
             code: encodedFinalCode,
@@ -232,7 +232,7 @@ export async function submitContestSolution(req: Request, res: Response) {
         });
 
         //#TODO: create new route for this in weebhook handler
-        const response = await axios.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+        const response = await axios.post(`${process.env.CODESANDBOX_HOST}/submit-batch-task`, {
             submissionId: submission.id,
             languageId: languageId,
             code: encodedFinalCode,
@@ -258,7 +258,7 @@ export async function submitContestSolution(req: Request, res: Response) {
 export async function checkContestBatchSubmission(req: Request, res: Response) {
     try {
         const { taskId, contestProblemId } = req.params;
-        const result = await axios.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
+        const result = await axios.get(`${process.env.CODESANDBOX_HOST}/batch-task-status/${taskId}`);
 
         const editedResult = {
             ...result.data,
