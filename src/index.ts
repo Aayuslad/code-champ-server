@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 app.use(
     cors({
-        origin: ["https://app.code-champ.xyz", "http://localhost:5173"],
+        origin: ["https://app.codechamp.online", "http://localhost:5173"],
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true,
     }),
