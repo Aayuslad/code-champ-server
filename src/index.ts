@@ -11,6 +11,7 @@ import passport from "./middlewares/passportMiddleware";
 import contestRouter from "./routes/contestRouter";
 import "./services/cronJobs";
 import contestProblemRouter from "./routes/contestProblemRouter";
+import adminRouter from "./routes/adminRouter";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -18,7 +19,7 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 app.use(
     cors({
-        origin: ["https://app.codechamp.online", "http://localhost:5173"],
+        origin: ["https://app.codechamp.online", "http://localhost:5173", "http://localhost:5174"],
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true,
     }),
@@ -49,6 +50,7 @@ app.get("/", (req, res) => {
     res.send("Welcome, This is code champ server 🔥.");
 });
 
+app.use("/admin", adminRouter); // Import admin routes
 app.use("/user", userRouter);
 app.use("/problem", problemRouter);
 app.use("/contest", contestRouter);

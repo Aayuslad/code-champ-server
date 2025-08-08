@@ -113,6 +113,7 @@ export async function getFeedProblems(req: Request, res: Response) {
         const problems = await prisma.problem.findMany({
             where: {
                 approved: true,
+                visibility: "Public",
             },
             take: 50,
             orderBy: {
@@ -178,7 +179,7 @@ export async function getProblem(req: Request, res: Response) {
 
     try {
         const problem = await prisma.problem.findFirst({
-            where: { id },
+            where: { id, visibility: "Public", approved: true },
             select: {
                 id: true,
                 problemNumber: true,
@@ -485,6 +486,8 @@ export async function getProblemsBySearch(req: Request, res: Response) {
             problems = await prisma.problem.findMany({
                 where: {
                     problemNumber: parseInt(searchQurey),
+                    visibility: "Public",
+                    approved: true,
                 },
                 select: {
                     id: true,
@@ -522,7 +525,7 @@ export async function getProblemForContribution(req: Request, res: Response) {
 
     try {
         const problem = await prisma.problem.findFirst({
-            where: { id: problemId },
+            where: { id: problemId, visibility: "Public", approved: true },
             select: {
                 id: true,
                 problemNumber: true,
