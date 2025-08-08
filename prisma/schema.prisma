@@ -115,6 +115,7 @@ model Contest {
   participants ContestParticipant[]
   linkToken    String               @unique
   points       Int                  @default(0)
+  approved     Boolean              @default(false)
   createdAt    DateTime             @default(now())
 }
 

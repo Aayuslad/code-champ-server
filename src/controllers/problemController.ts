@@ -111,6 +111,9 @@ export async function getFeedProblems(req: Request, res: Response) {
 
     try {
         const problems = await prisma.problem.findMany({
+            where: {
+                approved: true,
+            },
             take: 50,
             orderBy: {
                 problemNumber: "asc",
