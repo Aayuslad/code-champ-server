@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import {
     contributeProblemSchema,
     contrubuteTestCasesSchema,
@@ -12,7 +11,7 @@ import { idToLanguageMappings } from "../config/languageIdmappings";
 import { generateUniqueSlug } from "../helper/generateUniqueSlug";
 import { checkAuth } from "../middlewares/adminMiddleware";
 import { getObjectFromS3, getSignedS3URL, uploadJsonToS3 } from "../services/awsS3";
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 
 export async function contributeProblem(req: Request, res: Response) {
     try {
@@ -119,7 +118,7 @@ export async function contributeProblem(req: Request, res: Response) {
 }
 
 export async function getFeedProblems(req: Request, res: Response) {
-    const { userId } = req.query as { userId: string | undefined };
+    const { userId } = req.query;
 
     try {
         if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
@@ -130,7 +129,7 @@ export async function getFeedProblems(req: Request, res: Response) {
             where: {
                 OR: [
                     { visibility: "Public", approved: true },
-                    { visibility: "Private", createdById: userId ?? "" },
+                    { visibility: "Private", approved: false, createdById: userId as string },
                 ],
             },
             take: 50,
@@ -185,7 +184,6 @@ export async function getFeedProblems(req: Request, res: Response) {
 
         return res.status(200).json(editedProblems);
     } catch (err: any) {
-        console.log(err);
         if (err.name === "UnauthorizedError" || err.status === 401) {
             return res.status(401).json({ message: err.message });
         }
@@ -197,7 +195,7 @@ export async function getFeedProblems(req: Request, res: Response) {
 
 export async function getProblem(req: Request, res: Response) {
     const { id } = req.params;
-    const { userId } = req.query as { userId: string | undefined };
+    const { userId } = req.query as { userId: string };
 
     try {
          if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
@@ -209,7 +207,7 @@ export async function getProblem(req: Request, res: Response) {
                 id,
                 OR: [
                     { visibility: "Public", approved: true },
-                    { visibility: "Private", createdById: userId ?? "" },
+                    { visibility: "Private", createdById: userId },
                 ],
             },
             select: {
@@ -277,7 +275,6 @@ export async function getProblem(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
-        console.log(err)
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -314,7 +311,6 @@ export async function putOngoingProblem(req: Request, res: Response) {
 
         return res.sendStatus(200);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -334,7 +330,6 @@ export async function getOngoingProblem(req: Request, res: Response) {
 
         return res.status(200).json(ongoingProblem);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -474,6 +469,7 @@ export async function checkBatchSubmission(req: Request, res: Response) {
         return res.json(editedResult);
     } catch (err) {
         console.log(err);
+
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -504,7 +500,6 @@ export async function getSubmissions(req: Request, res: Response) {
 
         return res.status(200).json(submission);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -548,8 +543,7 @@ export async function getProblemsBySearch(req: Request, res: Response) {
         }
 
         return res.status(200).json(problems);
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -612,7 +606,6 @@ export async function getProblemForContribution(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
-        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -656,8 +649,7 @@ export async function contrubuteTestCases(req: Request, res: Response) {
         });
 
         return res.status(200).json({ message: "Test cases updated successfully" });
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
         res.status(500).json({
             message: "Internal Server Error",
         });

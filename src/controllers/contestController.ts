@@ -1,9 +1,8 @@
 import { createContestSchma, registerUserForContestSchema } from "@aayushlad/code-champ-common";
 import e, { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { PrismaClient } from "@prisma/client";
 import { join } from "@prisma/client/runtime/library";
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 
 // create contest
 export const createContest = async (req: Request, res: Response) => {
@@ -208,8 +207,8 @@ export const getContestRegisterDetails = async (req: Request, res: Response) => 
         };
 
         return res.status(200).json(contestWithRegistration);
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
+        console.log(error);
         return res.status(500).json({
             message: "Internal Server Error",
         });

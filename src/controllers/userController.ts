@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { sendOTPMail } from "../services/mailService";
 import {
@@ -11,7 +10,7 @@ import {
 } from "@aayushlad/code-champ-common";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const otpLength = 6;
@@ -76,8 +75,7 @@ export async function signupUser(req: Request, res: Response) {
         return res.status(200).json({
             message: "OTP Sent to Email",
         });
-    } catch (err) {
-        console.log(err);
+    } catch {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -126,8 +124,7 @@ export async function verifySignupOTP(req: Request, res: Response) {
         req.session.password = undefined;
 
         return res.json({ message: "Successfully signed up!" });
-    } catch (err) {
-        console.log(err);
+    } catch {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -156,8 +153,7 @@ export async function fetchUserProfile(req: Request, res: Response) {
             profileImg: user.profileImg,
             avatar: user.avatar,
         });
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -282,8 +278,7 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
         };
 
         return res.json(data);
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
@@ -403,8 +398,7 @@ export async function sendPasswordResetOTP(req: Request, res: Response) {
         return res.status(200).json({
             message: "OTP Sent to Email",
         });
-    } catch (err) {
-        console.log(err);
+    } catch {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -428,8 +422,7 @@ export async function verifyPasswordResetOTP(req: Request, res: Response) {
         req.session.canResetPassword = true;
 
         return res.json({ message: "OTP verified" });
-    } catch (err) {
-        console.log(err);
+    } catch {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -467,8 +460,7 @@ export async function updatePassword(req: Request, res: Response) {
         req.session.canResetPassword = undefined;
 
         return res.json({ message: "Password updated" });
-    } catch(err) {
-        console.log(err);
+    } catch {
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -492,8 +484,7 @@ export async function googleOAuth20Controller(req: Request, res: Response) {
 
         const redirectUrl = "https://app.codechamp.online/problems";
         res.redirect(redirectUrl);
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
         res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -554,8 +545,7 @@ export async function googleOneTapController(req: Request, res: Response) {
         });
 
         res.status(200).json({ success: true });
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
         res.status(500).json({ error: "Internal server error" });
     }
 }
