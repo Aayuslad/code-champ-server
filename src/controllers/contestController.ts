@@ -1,7 +1,6 @@
 import { createContestSchma, registerUserForContestSchema } from "@aayushlad/code-champ-common";
-import e, { Request, Response } from "express";
+import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { join } from "@prisma/client/runtime/library";
 import { prisma } from "../lib/prisma";
 
 // create contest
