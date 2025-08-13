@@ -9,5 +9,8 @@ declare namespace Express {
 			password: string;
 			profileImg: string | null;
 		} | null;
+		admin?: {
+			isAdmin: boolean;
+		};
 	}
 }

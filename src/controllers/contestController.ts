@@ -1,7 +1,8 @@
-import { createContestSchma } from "@aayushlad/code-champ-common";
-import { Request, Response } from "express";
+import { createContestSchma, registerUserForContestSchema } from "@aayushlad/code-champ-common";
+import e, { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { PrismaClient } from "@prisma/client";
+import { join } from "@prisma/client/runtime/library";
 const prisma = new PrismaClient();
 
 // create contest
@@ -12,7 +13,7 @@ export const createContest = async (req: Request, res: Response) => {
             return res.status(400).json({ error: parced.error });
         }
 
-        const { title, description, startTime, endTime, visibility, problems, points } = parced.data;
+        const { title, description, startTime, endTime, visibility, problems, points, durationMs, bestOf } = parced.data;
 
         const currentDate = new Date();
         if (new Date(startTime) <= currentDate) {
@@ -33,9 +34,11 @@ export const createContest = async (req: Request, res: Response) => {
                 endTime,
                 status: "Scheduled",
                 visibility,
+                durationMs,
                 linkToken: uuidv4(),
                 createdById: req?.user?.id as string,
                 points,
+                bestOf: bestOf || 0, // Default to 0 if not provided
                 problems: {
                     create: problems.map(problem => ({
                         problemId: problem.problemId,
@@ -172,6 +175,7 @@ export const getContestRegisterDetails = async (req: Request, res: Response) => 
                 description: true,
                 startTime: true,
                 endTime: true,
+                durationMs: true,
                 status: true,
                 createdBy: {
                     select: {
@@ -200,6 +204,7 @@ export const getContestRegisterDetails = async (req: Request, res: Response) => 
         const contestWithRegistration = {
             ...contest,
             isRegistered: existingParticipant ? true : false,
+            joinedAt: existingParticipant?.joinedAt || null,
         };
 
         return res.status(200).json(contestWithRegistration);
@@ -210,10 +215,16 @@ export const getContestRegisterDetails = async (req: Request, res: Response) => 
         });
     }
 };
-// register user for contest
+
 export const registerUserForContest = async (req: Request, res: Response) => {
+    const { contestId } = req.params;
+
     try {
-        const { contestId } = req.params;
+        const parced = registerUserForContestSchema.safeParse(req.body);
+        if (!parced.success) {
+            return res.status(400).json({ error: parced.error });
+        }
+        const { enrollmentNum } = parced.data;
 
         if (!contestId) {
             return res.status(400).json({ message: "Invalid contest ID" });
@@ -233,6 +244,7 @@ export const registerUserForContest = async (req: Request, res: Response) => {
         await prisma.contestParticipant.create({
             data: {
                 contestId,
+                enrollmentNum: String(enrollmentNum),
                 userId: req?.user?.id as string,
                 score: 0,
             },
@@ -262,7 +274,7 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
                 userId: req.user?.id,
             },
         });
-        
+
         if (!isParticipant) {
             return res.status(400).json({ message: "You haven't registerd" });
         }
@@ -277,6 +289,8 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
                 title: true,
                 startTime: true,
                 endTime: true,
+                durationMs: true,
+                bestOf: true,
                 problems: {
                     select: {
                         id: true,
@@ -285,6 +299,7 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
                         problem: {
                             select: {
                                 title: true,
+                                testCasesCount: true,
                                 id: true,
                             },
                         },
@@ -300,6 +315,7 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
                                 userName: true,
                             },
                         },
+                        enrollmentNum: true,
                         score: true,
                     },
                 },
@@ -310,24 +326,42 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
             ...liveContest,
             participantId: isParticipant?.id,
             yourScore: isParticipant?.score,
+            joinedAt: isParticipant?.joinedAt,
             problems: liveContest?.problems
                 ? await Promise.all(
                       liveContest.problems.map(async problem => {
-                          const isSolved = await prisma.contestSubmission.findFirst({
-                              where: {
-                                  contestProblemId: problem.id,
-                                  createdByParticipantId: isParticipant?.id,
-                                  status: "Accepted",
-                              },
-                          });
+                            let attemptState = "Not Attempted";
 
+                            // fetch the last submission for the problem
+                            const lastSubmission = await prisma.contestSubmission.findFirst({
+                                where: {
+                                    contestProblemId: problem.id,
+                                    createdByParticipantId: isParticipant?.id,
+                                },
+                                orderBy: {
+                                    createdAt: "desc",
+                                },
+                            });
+
+                            // if state is accepted the accepted
+                            if (lastSubmission && lastSubmission?.status === "Accepted") {
+                                attemptState = "Accepted";
+                            }
+                            // if other then attempted
+                            if (lastSubmission && lastSubmission?.status !== "Accepted") {
+                                attemptState = "Attempted";
+                            }
+                            // if not fonud then not attempted
+                          
                           return {
                               points: problem.points,
+                              scoredPoints: lastSubmission?.points || 0,
                               order: problem.order,
+                              testCasesCount: problem.problem.testCasesCount,
                               contestProblemId: problem.id,
                               problemId: problem.problem.id,
                               title: problem.problem.title,
-                              isSolved: isSolved ? true : false,
+                              attemptState: attemptState,
                           };
                       }),
                   )
@@ -340,6 +374,7 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
                         profileImg: participant.user.profileImg || "",
                         avatar: participant.user.avatar || "",
                         score: participant.score,
+                        enrollmentNum: participant.enrollmentNum || "",
                     };
                 }) || [],
         };
@@ -377,6 +412,7 @@ export const getLeaderBard = async (req: Request, res: Response) => {
                     },
                 },
                 score: true,
+                enrollmentNum: true,
             },
             orderBy: {
                 score: "desc",
@@ -389,6 +425,7 @@ export const getLeaderBard = async (req: Request, res: Response) => {
             profileImg: entry.user.profileImg,
             avatar: entry.user.avatar,
             score: entry.score,
+            enrollmentNum: entry.enrollmentNum,
         }));
 
         return res.status(200).json(normalizedLeaderBoard);

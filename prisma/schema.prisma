@@ -33,7 +33,7 @@ model User {
 
 model Problem {
   id                  String          @id @default(uuid())
-  problemNumber       Int             @unique
+  problemNumber       Int?             @unique 
   title               String          @unique @db.VarChar(50)
   slug                String          @unique
   difficultyLevel     difficultyLevel
@@ -108,6 +108,7 @@ model Contest {
   description  String               @db.VarChar(1000)
   startTime    DateTime
   endTime      DateTime
+  durationMs   Int // Duration of the contest in milliseconds
   status       ContestStatus        @default(Scheduled)
   visibility   Visibility           @default(Public)
   createdById  String
@@ -116,6 +117,7 @@ model Contest {
   participants ContestParticipant[]
   linkToken    String               @unique
   points       Int                  @default(0)
+  bestOf       Int                  @default(0) // Best N of total questions for scoring
   approved     Boolean              @default(false)
   createdAt    DateTime             @default(now())
 }
@@ -148,7 +150,7 @@ model ContestSubmission {
   code                   String
   languageId             String
   difficultyLevel        difficultyLevel
-  points                 Int?
+  points                 Float?
   status                 submissionStatus
   createdAt              DateTime           @default(now())
   createdByParticipantId String
@@ -156,13 +158,14 @@ model ContestSubmission {
 }
 
 model ContestParticipant {
-  id        String   @id @default(uuid())
-  contestId String
-  contest   Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  score     Int      @default(0) // Participant's total score in the contest
-  joinedAt  DateTime @default(now())
+  id            String   @id @default(uuid())
+  contestId     String
+  contest       Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  userId        String
+  enrollmentNum String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score         Float    @default(0) // Participant's total score in the contest
+  joinedAt      DateTime @default(now())
 
   OngoingContestProblem OngoingContestProblem[]
   ContestSubmission     ContestSubmission[]

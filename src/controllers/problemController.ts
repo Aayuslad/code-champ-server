@@ -10,6 +10,7 @@ import axios from "axios";
 import { Request, Response } from "express";
 import { idToLanguageMappings } from "../config/languageIdmappings";
 import { generateUniqueSlug } from "../helper/generateUniqueSlug";
+import { checkAuth } from "../middlewares/adminMiddleware";
 import { getObjectFromS3, getSignedS3URL, uploadJsonToS3 } from "../services/awsS3";
 const prisma = new PrismaClient();
 
@@ -28,6 +29,7 @@ export async function contributeProblem(req: Request, res: Response) {
             topicTags,
             hints,
             constraints,
+            visibility,
         } = parsed.data;
 
         const slug = await generateUniqueSlug(title);
@@ -51,19 +53,28 @@ export async function contributeProblem(req: Request, res: Response) {
             });
         }
 
-        const bigestProblemNum = await prisma.problem.findFirst({
-            select: {
-                problemNumber: true,
-            },
-            orderBy: {
-                problemNumber: "desc",
-            },
-        });
+        let problemNumber = null;
+        if (visibility === "Public") {
+            const bigestProblemNum = (await prisma.problem.findFirst({
+                where: {
+                    problemNumber: {
+                        not: null,
+                    },
+                },
+                select: {
+                    problemNumber: true,
+                },
+                orderBy: {
+                    problemNumber: "desc",
+                },
+            })) as { problemNumber: number } | null;
+            problemNumber = bigestProblemNum ? bigestProblemNum.problemNumber + 1 : 1;
+        }
 
         const newProblem = await prisma.problem.create({
             data: {
                 title,
-                problemNumber: bigestProblemNum ? bigestProblemNum.problemNumber + 1 : 1,
+                problemNumber,
                 slug: slug,
                 description: description,
                 difficultyLevel: difficultyLevel,
@@ -73,6 +84,7 @@ export async function contributeProblem(req: Request, res: Response) {
                 submissionCode: req.body.submissionCode,
                 testCasesCount: testCases.length || 0,
                 functionStructure: JSON.stringify(functionStructure),
+                visibility,
                 constraints: {
                     create: constraints.map((constraint: string) => ({
                         content: constraint,
@@ -110,10 +122,16 @@ export async function getFeedProblems(req: Request, res: Response) {
     const { userId } = req.query;
 
     try {
-        const problems = await prisma.problem.findMany({
+        if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
+            await checkAuth(req);
+        }
+
+        let problems = await prisma.problem.findMany({
             where: {
-                approved: true,
-                visibility: "Public",
+                OR: [
+                    { visibility: "Public", approved: true },
+                    { visibility: "Private", approved: false, createdById: userId as string },
+                ],
             },
             take: 50,
             orderBy: {
@@ -166,20 +184,33 @@ export async function getFeedProblems(req: Request, res: Response) {
         });
 
         return res.status(200).json(editedProblems);
-    } catch (err) {
-        res.status(500).json({
-            message: "Internal Server Error",
-        });
+    } catch (err: any) {
+        if (err.name === "UnauthorizedError" || err.status === 401) {
+            return res.status(401).json({ message: err.message });
+        }
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
+
 
 export async function getProblem(req: Request, res: Response) {
     const { id } = req.params;
     const { userId } = req.query as { userId: string };
 
     try {
+         if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
+            await checkAuth(req);
+        }
+
         const problem = await prisma.problem.findFirst({
-            where: { id, visibility: "Public", approved: true },
+            where: {
+                id,
+                OR: [
+                    { visibility: "Public", approved: true },
+                    { visibility: "Private", createdById: userId },
+                ],
+            },
             select: {
                 id: true,
                 problemNumber: true,
@@ -480,7 +511,7 @@ export async function getProblemsBySearch(req: Request, res: Response) {
     const searchQurey = req.query.query as string;
     try {
         const isNumber = !isNaN(parseInt(searchQurey));
-        let problems: any = [];        
+        let problems: any = [];
 
         if (isNumber) {
             problems = await prisma.problem.findMany({
@@ -510,7 +541,7 @@ export async function getProblemsBySearch(req: Request, res: Response) {
                     difficultyLevel: true,
                 },
             });
-        } 
+        }
 
         return res.status(200).json(problems);
     } catch (error) {
@@ -521,7 +552,7 @@ export async function getProblemsBySearch(req: Request, res: Response) {
 }
 
 export async function getProblemForContribution(req: Request, res: Response) {
-    const { problemId } = req.params;    
+    const { problemId } = req.params;
 
     try {
         const problem = await prisma.problem.findFirst({

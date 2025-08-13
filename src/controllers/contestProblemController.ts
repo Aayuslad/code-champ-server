@@ -202,6 +202,24 @@ export async function submitContestSolution(req: Request, res: Response) {
         if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
         const { problemId, contestProblemId, participantId, languageId, solutionCode } = parsed.data;
 
+        const isParticipant = await prisma.contestParticipant.findFirst({
+            where: { id: participantId },
+            select: {
+                joinedAt: true,
+                contest: {
+                    select: {
+                        durationMs: true,
+                    }
+                }
+            }
+        });
+
+        if (!isParticipant) return res.status(404).json({ message: "Participant not found" });
+        const contestEndTime = new Date(isParticipant.joinedAt.getTime() + Number(isParticipant.contest.durationMs));
+        if (contestEndTime < new Date()) {
+            return res.status(403).json({ message: "Contest has ended, you cannot submit solutions now" });
+        }
+
         const problem = await prisma.problem.findFirst({
             where: { id: problemId },
             select: {
