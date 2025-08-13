@@ -208,8 +208,8 @@ export const getContestRegisterDetails = async (req: Request, res: Response) => 
         };
 
         return res.status(200).json(contestWithRegistration);
-    } catch (error) {
-        console.log(error);
+    } catch (err) {
+        console.log(err);
         return res.status(500).json({
             message: "Internal Server Error",
         });

@@ -87,6 +87,7 @@ export async function getContestProblem(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -123,6 +124,7 @@ export async function putOngoingContestProblem(req: Request, res: Response) {
 
         return res.sendStatus(200);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -142,6 +144,7 @@ export async function getOngoingContestProblem(req: Request, res: Response) {
 
         return res.status(200).json(ongoingContestProblem);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -291,7 +294,6 @@ export async function checkContestBatchSubmission(req: Request, res: Response) {
         return res.json(editedResult);
     } catch (err) {
         console.log(err);
-
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -322,6 +324,7 @@ export async function getContestSubmissions(req: Request, res: Response) {
 
         return res.status(200).json(submission);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });

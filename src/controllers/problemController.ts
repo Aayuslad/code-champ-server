@@ -185,6 +185,7 @@ export async function getFeedProblems(req: Request, res: Response) {
 
         return res.status(200).json(editedProblems);
     } catch (err: any) {
+        console.log(err);
         if (err.name === "UnauthorizedError" || err.status === 401) {
             return res.status(401).json({ message: err.message });
         }
@@ -276,7 +277,7 @@ export async function getProblem(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
-        console.log
+        console.log(err)
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -313,6 +314,7 @@ export async function putOngoingProblem(req: Request, res: Response) {
 
         return res.sendStatus(200);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -332,6 +334,7 @@ export async function getOngoingProblem(req: Request, res: Response) {
 
         return res.status(200).json(ongoingProblem);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -471,7 +474,6 @@ export async function checkBatchSubmission(req: Request, res: Response) {
         return res.json(editedResult);
     } catch (err) {
         console.log(err);
-
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -502,6 +504,7 @@ export async function getSubmissions(req: Request, res: Response) {
 
         return res.status(200).json(submission);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -545,7 +548,8 @@ export async function getProblemsBySearch(req: Request, res: Response) {
         }
 
         return res.status(200).json(problems);
-    } catch (error) {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -608,6 +612,7 @@ export async function getProblemForContribution(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -651,7 +656,8 @@ export async function contrubuteTestCases(req: Request, res: Response) {
         });
 
         return res.status(200).json({ message: "Test cases updated successfully" });
-    } catch (error) {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });

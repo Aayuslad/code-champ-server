@@ -76,7 +76,8 @@ export async function signupUser(req: Request, res: Response) {
         return res.status(200).json({
             message: "OTP Sent to Email",
         });
-    } catch {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -125,7 +126,8 @@ export async function verifySignupOTP(req: Request, res: Response) {
         req.session.password = undefined;
 
         return res.json({ message: "Successfully signed up!" });
-    } catch {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -154,7 +156,8 @@ export async function fetchUserProfile(req: Request, res: Response) {
             profileImg: user.profileImg,
             avatar: user.avatar,
         });
-    } catch (error) {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -279,7 +282,8 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
         };
 
         return res.json(data);
-    } catch (error) {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
@@ -399,7 +403,8 @@ export async function sendPasswordResetOTP(req: Request, res: Response) {
         return res.status(200).json({
             message: "OTP Sent to Email",
         });
-    } catch {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -423,7 +428,8 @@ export async function verifyPasswordResetOTP(req: Request, res: Response) {
         req.session.canResetPassword = true;
 
         return res.json({ message: "OTP verified" });
-    } catch {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -461,7 +467,8 @@ export async function updatePassword(req: Request, res: Response) {
         req.session.canResetPassword = undefined;
 
         return res.json({ message: "Password updated" });
-    } catch {
+    } catch(err) {
+        console.log(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -485,7 +492,8 @@ export async function googleOAuth20Controller(req: Request, res: Response) {
 
         const redirectUrl = "https://app.codechamp.online/problems";
         res.redirect(redirectUrl);
-    } catch (error) {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -546,7 +554,8 @@ export async function googleOneTapController(req: Request, res: Response) {
         });
 
         res.status(200).json({ success: true });
-    } catch (error) {
+    } catch (err) {
+        console.log(err);
         res.status(500).json({ error: "Internal server error" });
     }
 }
