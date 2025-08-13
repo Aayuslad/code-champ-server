@@ -119,7 +119,7 @@ export async function contributeProblem(req: Request, res: Response) {
 }
 
 export async function getFeedProblems(req: Request, res: Response) {
-    const { userId } = req.query;
+    const { userId } = req.query as { userId: string | undefined };
 
     try {
         if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
@@ -130,7 +130,7 @@ export async function getFeedProblems(req: Request, res: Response) {
             where: {
                 OR: [
                     { visibility: "Public", approved: true },
-                    { visibility: "Private", approved: false, createdById: userId as string },
+                    { visibility: "Private", createdById: userId ?? "" },
                 ],
             },
             take: 50,
@@ -196,7 +196,7 @@ export async function getFeedProblems(req: Request, res: Response) {
 
 export async function getProblem(req: Request, res: Response) {
     const { id } = req.params;
-    const { userId } = req.query as { userId: string };
+    const { userId } = req.query as { userId: string | undefined };
 
     try {
          if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
@@ -208,7 +208,7 @@ export async function getProblem(req: Request, res: Response) {
                 id,
                 OR: [
                     { visibility: "Public", approved: true },
-                    { visibility: "Private", createdById: userId },
+                    { visibility: "Private", createdById: userId ?? "" },
                 ],
             },
             select: {
@@ -276,6 +276,7 @@ export async function getProblem(req: Request, res: Response) {
 
         return res.status(200).json(editedProblem);
     } catch (err) {
+        console.log
         res.status(500).json({
             message: "Internal Server Error",
         });
