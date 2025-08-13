@@ -326,30 +326,41 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
             yourScore: isParticipant?.score,
             joinedAt: isParticipant?.joinedAt,
             problems: liveContest?.problems
-                ? await Promise.all(
-                      liveContest.problems.map(async problem => {
-                            let attemptState = "Not Attempted";
+                ? await (async () => {
+                      // Fetch all submissions for this participant in one query instead of multiple individual queries
+                      const allSubmissions = await prisma.contestSubmission.findMany({
+                          where: {
+                              createdByParticipantId: isParticipant?.id,
+                              contestProblemId: {
+                                  in: liveContest.problems.map(p => p.id)
+                              }
+                          },
+                          orderBy: {
+                              createdAt: "desc",
+                          },
+                      });
 
-                            // fetch the last submission for the problem
-                            const lastSubmission = await prisma.contestSubmission.findFirst({
-                                where: {
-                                    contestProblemId: problem.id,
-                                    createdByParticipantId: isParticipant?.id,
-                                },
-                                orderBy: {
-                                    createdAt: "desc",
-                                },
-                            });
+                      // Group submissions by contestProblemId to get the latest for each
+                      const submissionsMap = new Map();
+                      allSubmissions.forEach(submission => {
+                          if (!submissionsMap.has(submission.contestProblemId)) {
+                              submissionsMap.set(submission.contestProblemId, submission);
+                          }
+                      });
 
-                            // if state is accepted the accepted
-                            if (lastSubmission && lastSubmission?.status === "Accepted") {
-                                attemptState = "Accepted";
-                            }
-                            // if other then attempted
-                            if (lastSubmission && lastSubmission?.status !== "Accepted") {
-                                attemptState = "Attempted";
-                            }
-                            // if not fonud then not attempted
+                      return liveContest.problems.map(problem => {
+                          const lastSubmission = submissionsMap.get(problem.id);
+                          let attemptState = "Not Attempted";
+
+                          // if state is accepted then accepted
+                          if (lastSubmission && lastSubmission?.status === "Accepted") {
+                              attemptState = "Accepted";
+                          }
+                          // if other then attempted
+                          if (lastSubmission && lastSubmission?.status !== "Accepted") {
+                              attemptState = "Attempted";
+                          }
+                          // if not found then not attempted
                           
                           return {
                               points: problem.points,
@@ -361,8 +372,8 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
                               title: problem.problem.title,
                               attemptState: attemptState,
                           };
-                      }),
-                  )
+                      });
+                  })()
                 : [],
             leaderBoard:
                 liveContest?.participants?.map(participant => {
