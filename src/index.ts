@@ -12,6 +12,7 @@ import contestRouter from "./routes/contestRouter";
 import "./services/cronJobs";
 import contestProblemRouter from "./routes/contestProblemRouter";
 import adminRouter from "./routes/adminRouter";
+import { disconnectPrisma } from "./lib/prisma";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -56,6 +57,45 @@ app.use("/problem", problemRouter);
 app.use("/contest", contestRouter);
 app.use("/contest-problem", contestProblemRouter);
     
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+});
+
+// Graceful shutdown handling
+const gracefulShutdown = async (signal: string) => {
+    console.log(`\n${signal} received. Starting graceful shutdown...`);
+    
+    // Stop accepting new connections
+    server.close(async () => {
+        console.log('HTTP server closed');
+        
+        try {
+            // Close database connections
+            await disconnectPrisma();
+            console.log('Database connections closed');
+            
+            process.exit(0);
+        } catch (error) {
+            console.error('Error during shutdown:', error);
+            process.exit(1);
+        }
+    });
+    
+    // Force close after 30 seconds
+    setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 30000);
+};
+
+// Handle different termination signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    gracefulShutdown('uncaughtException');
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('unhandledRejection');
 });

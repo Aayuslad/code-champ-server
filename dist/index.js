@@ -20858,16 +20858,13 @@ var require_body_parser = __commonJS({
 });
 
 // src/index.ts
-var import_express5 = __toESM(require("express"));
+var import_express6 = __toESM(require("express"));
 var import_config = require("dotenv/config");
 var import_cookie_parser = __toESM(require("cookie-parser"));
 
 // src/routes/userRoutes.ts
 var import_express = require("express");
 var import_passport = __toESM(require("passport"));
-
-// src/controllers/userController.ts
-var import_client = require("@prisma/client");
 
 // src/config/mailTransporter.ts
 var import_nodemailer = __toESM(require("nodemailer"));
@@ -20931,7 +20928,53 @@ async function sendOTPMail(to, otp) {
 var import_code_champ_common = require("@aayushlad/code-champ-common");
 var import_bcrypt = __toESM(require("bcrypt"));
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"));
-var prisma = new import_client.PrismaClient();
+
+// src/lib/prisma.ts
+var import_client = require("@prisma/client");
+var prisma = globalThis.__prisma || new import_client.PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  },
+  // Connection pooling configuration
+  log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  errorFormat: "pretty"
+});
+if (process.env.NODE_ENV !== "production") {
+  globalThis.__prisma = prisma;
+}
+async function disconnectPrisma() {
+  try {
+    await prisma.$disconnect();
+    console.log("Prisma client disconnected successfully");
+  } catch (error) {
+    console.error("Error disconnecting Prisma client:", error);
+  }
+}
+process.on("beforeExit", async () => {
+  await disconnectPrisma();
+});
+process.on("SIGINT", async () => {
+  await disconnectPrisma();
+  process.exit(0);
+});
+process.on("SIGTERM", async () => {
+  await disconnectPrisma();
+  process.exit(0);
+});
+process.on("uncaughtException", async (error) => {
+  console.error("Uncaught Exception:", error);
+  await disconnectPrisma();
+  process.exit(1);
+});
+process.on("unhandledRejection", async (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  await disconnectPrisma();
+  process.exit(1);
+});
+
+// src/controllers/userController.ts
 var { OAuth2Client } = require("google-auth-library");
 var client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 var otpLength = 6;
@@ -21320,7 +21363,7 @@ async function googleOAuth20Controller(req, res) {
       maxAge: 30 * 24 * 60 * 60 * 1e3
       // 30 days in milliseconds
     });
-    const redirectUrl = "https://app.code-champ.xyz/problems";
+    const redirectUrl = "https://app.codechamp.online/problems";
     res.redirect(redirectUrl);
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
@@ -21378,9 +21421,7 @@ async function googleOneTapController(req, res) {
 }
 
 // src/middlewares/authMiddleware.ts
-var import_client2 = require("@prisma/client");
 var import_jsonwebtoken2 = __toESM(require("jsonwebtoken"));
-var prisma2 = new import_client2.PrismaClient();
 async function authMiddleware(req, res, next) {
   const token = req.cookies.token;
   try {
@@ -21395,7 +21436,7 @@ async function authMiddleware(req, res, next) {
         message: "Unauthorized"
       });
     }
-    const user = await prisma2.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         id: decodedToken.id
       }
@@ -21439,7 +21480,6 @@ var userRoutes_default = userRouter;
 var import_express2 = require("express");
 
 // src/controllers/problemController.ts
-var import_client4 = require("@prisma/client");
 var import_code_champ_common2 = require("@aayushlad/code-champ-common");
 var import_axios = __toESM(require("axios"));
 
@@ -21452,11 +21492,9 @@ var idToLanguageMappings = {
 };
 
 // src/helper/generateUniqueSlug.ts
-var import_client3 = require("@prisma/client");
-var prisma3 = new import_client3.PrismaClient();
 async function generateUniqueSlug(title) {
   let slug = title.toLowerCase().replace(/\s+/g, "-");
-  const existingSlugs = await prisma3.problem.findMany({
+  const existingSlugs = await prisma.problem.findMany({
     where: {
       slug: {
         startsWith: slug
@@ -21473,6 +21511,50 @@ async function generateUniqueSlug(title) {
     counter++;
   }
   return uniqueSlug;
+}
+
+// src/middlewares/adminMiddleware.ts
+var import_jsonwebtoken3 = __toESM(require("jsonwebtoken"));
+function adminMiddleware(req, res, next) {
+  var _a;
+  const token = req.cookies["admin-token"] || (((_a = req.headers.authorization) == null ? void 0 : _a.split(" ")[1]) ?? "");
+  if (!token) {
+    return res.status(401).json({ message: "Admin token missing" });
+  }
+  try {
+    const decoded = import_jsonwebtoken3.default.verify(token, process.env.JWT_SECRET);
+    if (typeof decoded === "string" || !decoded.isAdmin) {
+      return res.status(401).json({ message: "Invalid admin token" });
+    }
+    req.admin = { isAdmin: true };
+    next();
+  } catch {
+    return res.status(401).json({ message: "Invalid or expired admin token" });
+  }
+}
+async function checkAuth(req) {
+  var _a;
+  try {
+    const token = req.cookies["token"] || (((_a = req.headers.authorization) == null ? void 0 : _a.split(" ")[1]) ?? "");
+    if (!token) {
+      const e = new Error("Auth token missing");
+      e.status = 401;
+      throw e;
+    }
+    const decodedToken = import_jsonwebtoken3.default.verify(token, process.env.JWT_SECRET);
+    if (typeof decodedToken === "string") {
+      const e = new Error("Invalid auth token");
+      e.status = 401;
+      throw e;
+    }
+  } catch (err) {
+    if (err instanceof import_jsonwebtoken3.default.JsonWebTokenError || err instanceof import_jsonwebtoken3.default.TokenExpiredError) {
+      const e = new Error("Invalid or expired token");
+      e.status = 401;
+      throw e;
+    }
+    throw err;
+  }
 }
 
 // src/services/awsS3.ts
@@ -21535,7 +21617,6 @@ var getSignedS3URL = async (key) => {
 };
 
 // src/controllers/problemController.ts
-var prisma4 = new import_client4.PrismaClient();
 async function contributeProblem(req, res) {
   var _a;
   try {
@@ -21550,14 +21631,15 @@ async function contributeProblem(req, res) {
       functionStructure,
       topicTags,
       hints,
-      constraints
+      constraints,
+      visibility
     } = parsed.data;
     const slug = await generateUniqueSlug(title);
     await Promise.all([
       uploadJsonToS3(`problem-test-cases/${slug}/sampleTestCases.json`, sampleTestCases),
       uploadJsonToS3(`problem-test-cases/${slug}/testCases.json`, testCases)
     ]);
-    const existingTags = await prisma4.topicTag.findMany({
+    const existingTags = await prisma.topicTag.findMany({
       where: {
         content: {
           in: topicTags.map((tag) => tag.trim())
@@ -21569,18 +21651,27 @@ async function contributeProblem(req, res) {
         message: "One or more topic tags do not exist"
       });
     }
-    const bigestProblemNum = await prisma4.problem.findFirst({
-      select: {
-        problemNumber: true
-      },
-      orderBy: {
-        problemNumber: "desc"
-      }
-    });
-    const newProblem = await prisma4.problem.create({
+    let problemNumber = null;
+    if (visibility === "Public") {
+      const bigestProblemNum = await prisma.problem.findFirst({
+        where: {
+          problemNumber: {
+            not: null
+          }
+        },
+        select: {
+          problemNumber: true
+        },
+        orderBy: {
+          problemNumber: "desc"
+        }
+      });
+      problemNumber = bigestProblemNum ? bigestProblemNum.problemNumber + 1 : 1;
+    }
+    const newProblem = await prisma.problem.create({
       data: {
         title,
-        problemNumber: bigestProblemNum ? bigestProblemNum.problemNumber + 1 : 1,
+        problemNumber,
         slug,
         description,
         difficultyLevel,
@@ -21590,6 +21681,7 @@ async function contributeProblem(req, res) {
         submissionCode: req.body.submissionCode,
         testCasesCount: testCases.length || 0,
         functionStructure: JSON.stringify(functionStructure),
+        visibility,
         constraints: {
           create: constraints.map((constraint) => ({
             content: constraint
@@ -21624,7 +21716,16 @@ async function contributeProblem(req, res) {
 async function getFeedProblems(req, res) {
   const { userId } = req.query;
   try {
-    const problems = await prisma4.problem.findMany({
+    if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
+      await checkAuth(req);
+    }
+    let problems = await prisma.problem.findMany({
+      where: {
+        OR: [
+          { visibility: "Public", approved: true },
+          { visibility: "Private", approved: false, createdById: userId }
+        ]
+      },
       take: 50,
       orderBy: {
         problemNumber: "asc"
@@ -21645,7 +21746,7 @@ async function getFeedProblems(req, res) {
     });
     let solvedProblems = [];
     if (userId && userId !== "undefined") {
-      solvedProblems = await prisma4.submission.findMany({
+      solvedProblems = await prisma.submission.findMany({
         where: {
           problemId: {
             in: problems.map((problem) => problem.id)
@@ -21670,17 +21771,27 @@ async function getFeedProblems(req, res) {
     });
     return res.status(200).json(editedProblems);
   } catch (err) {
-    res.status(500).json({
-      message: "Internal Server Error"
-    });
+    if (err.name === "UnauthorizedError" || err.status === 401) {
+      return res.status(401).json({ message: err.message });
+    }
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 }
 async function getProblem(req, res) {
   const { id } = req.params;
   const { userId } = req.query;
   try {
-    const problem = await prisma4.problem.findFirst({
-      where: { id },
+    if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
+      await checkAuth(req);
+    }
+    const problem = await prisma.problem.findFirst({
+      where: {
+        id,
+        OR: [
+          { visibility: "Public", approved: true },
+          { visibility: "Private", createdById: userId }
+        ]
+      },
       select: {
         id: true,
         problemNumber: true,
@@ -21709,7 +21820,7 @@ async function getProblem(req, res) {
     }
     let solutions = "";
     if (userId && userId !== "undefined") {
-      const ongoingProblem = await prisma4.ongoingProblem.findFirst({
+      const ongoingProblem = await prisma.ongoingProblem.findFirst({
         where: {
           userId,
           problemId: id
@@ -21747,11 +21858,11 @@ async function putOngoingProblem(req, res) {
     const parsed = import_code_champ_common2.putOngoingProblemSchma.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { problemId, solutions } = parsed.data;
-    const existingProblem = await prisma4.ongoingProblem.findFirst({
+    const existingProblem = await prisma.ongoingProblem.findFirst({
       where: { problemId, userId: (_a = req.user) == null ? void 0 : _a.id }
     });
     if (!existingProblem) {
-      await prisma4.ongoingProblem.create({
+      await prisma.ongoingProblem.create({
         data: {
           problemId,
           userId: (_b = req.user) == null ? void 0 : _b.id,
@@ -21759,7 +21870,7 @@ async function putOngoingProblem(req, res) {
         }
       });
     } else {
-      await prisma4.ongoingProblem.update({
+      await prisma.ongoingProblem.update({
         where: { id: existingProblem.id },
         data: {
           solutions
@@ -21777,7 +21888,7 @@ async function getOngoingProblem(req, res) {
   var _a;
   const { problemId } = req.params;
   try {
-    const ongoingProblem = await prisma4.ongoingProblem.findFirst({
+    const ongoingProblem = await prisma.ongoingProblem.findFirst({
       where: { userId: (_a = req.user) == null ? void 0 : _a.id, problemId },
       select: {
         solutions: true
@@ -21795,7 +21906,7 @@ async function testSolution(req, res) {
     const parsed = import_code_champ_common2.sumitSolutionSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { problemId, languageId, solutionCode } = parsed.data;
-    const problem = await prisma4.problem.findFirst({
+    const problem = await prisma.problem.findFirst({
       where: { id: problemId },
       select: {
         id: true,
@@ -21811,7 +21922,7 @@ async function testSolution(req, res) {
     const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
     const encodedFinalCode = Buffer.from(finalCode).toString("base64");
     const id = Math.random().toString(36).substring(7);
-    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+    const response = await import_axios.default.post(`${process.env.CODESANDBOX_HOST}/submit-batch-task`, {
       submissionId: id,
       languageId,
       code: encodedFinalCode,
@@ -21836,7 +21947,7 @@ async function submitSolution(req, res) {
     const parsed = import_code_champ_common2.sumitSolutionSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { problemId, languageId, solutionCode } = parsed.data;
-    const problem = await prisma4.problem.findFirst({
+    const problem = await prisma.problem.findFirst({
       where: { id: problemId },
       select: {
         id: true,
@@ -21851,7 +21962,7 @@ async function submitSolution(req, res) {
     const solutionCodee = parcedSubmissionCode[idToLanguageMappings[languageId]];
     const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
     const encodedFinalCode = Buffer.from(finalCode).toString("base64");
-    const submission = await prisma4.submission.create({
+    const submission = await prisma.submission.create({
       data: {
         problemId,
         code: solutionCode,
@@ -21861,7 +21972,7 @@ async function submitSolution(req, res) {
         createdById: ((_a = req.user) == null ? void 0 : _a.id) || ""
       }
     });
-    const response = await import_axios.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+    const response = await import_axios.default.post(`${process.env.CODESANDBOX_HOST}/submit-batch-task`, {
       submissionId: submission.id,
       languageId,
       code: encodedFinalCode,
@@ -21873,7 +21984,7 @@ async function submitSolution(req, res) {
       message: "Solution submitted successfully",
       taskId: response.data.batchTaskId
     });
-    await prisma4.problem.update({
+    await prisma.problem.update({
       where: { id: problemId },
       data: {
         submissionCount: {
@@ -21893,7 +22004,7 @@ async function checkBatchSubmission(req, res) {
   var _a;
   try {
     const { taskId, problemId } = req.params;
-    const result = await import_axios.default.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
+    const result = await import_axios.default.get(`${process.env.CODESANDBOX_HOST}/batch-task-status/${taskId}`);
     const editedResult = {
       ...result.data,
       problemId,
@@ -21915,7 +22026,7 @@ async function getSubmissions(req, res) {
   var _a;
   try {
     const { problemId } = req.params;
-    const submission = await prisma4.submission.findMany({
+    const submission = await prisma.submission.findMany({
       where: {
         createdById: ((_a = req.user) == null ? void 0 : _a.id) || "",
         problemId
@@ -21945,9 +22056,11 @@ async function getProblemsBySearch(req, res) {
     const isNumber = !isNaN(parseInt(searchQurey));
     let problems = [];
     if (isNumber) {
-      problems = await prisma4.problem.findMany({
+      problems = await prisma.problem.findMany({
         where: {
-          problemNumber: parseInt(searchQurey)
+          problemNumber: parseInt(searchQurey),
+          visibility: "Public",
+          approved: true
         },
         select: {
           id: true,
@@ -21957,7 +22070,7 @@ async function getProblemsBySearch(req, res) {
         }
       });
     } else {
-      problems = await prisma4.problem.findMany({
+      problems = await prisma.problem.findMany({
         where: {
           title: {
             contains: searchQurey
@@ -21981,8 +22094,8 @@ async function getProblemsBySearch(req, res) {
 async function getProblemForContribution(req, res) {
   const { problemId } = req.params;
   try {
-    const problem = await prisma4.problem.findFirst({
-      where: { id: problemId },
+    const problem = await prisma.problem.findFirst({
+      where: { id: problemId, visibility: "Public", approved: true },
       select: {
         id: true,
         problemNumber: true,
@@ -22037,7 +22150,7 @@ async function contrubuteTestCases(req, res) {
     const parsed = import_code_champ_common2.contrubuteTestCasesSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { problemId, contributedTestCases } = parsed.data;
-    const problem = await prisma4.problem.findFirst({
+    const problem = await prisma.problem.findFirst({
       where: {
         id: problemId
       },
@@ -22051,7 +22164,7 @@ async function contrubuteTestCases(req, res) {
     const parsedTestCases = JSON.parse(testCasesJson);
     const updatedTestCases = [...parsedTestCases, ...contributedTestCases];
     await uploadJsonToS3(`problem-test-cases/${problem.slug}/testCases.json`, updatedTestCases);
-    await prisma4.problem.update({
+    await prisma.problem.update({
       where: {
         id: problemId
       },
@@ -22092,10 +22205,8 @@ var import_morgan = __toESM(require("morgan"));
 var import_body_parser = __toESM(require_body_parser());
 
 // src/middlewares/passportMiddleware.ts
-var import_client5 = require("@prisma/client");
 var import_passport2 = __toESM(require("passport"));
 var import_passport_google_oauth20 = require("passport-google-oauth20");
-var prisma5 = new import_client5.PrismaClient();
 import_passport2.default.use(
   new import_passport_google_oauth20.Strategy(
     {
@@ -22106,15 +22217,15 @@ import_passport2.default.use(
     async (accessToken, refreshToken, profile, done) => {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
       try {
-        let user = await prisma5.user.findUnique({
+        let user = await prisma.user.findUnique({
           where: { googleId: profile.id }
         });
         if (!user) {
-          const existingUserByEmail = await prisma5.user.findUnique({
+          const existingUserByEmail = await prisma.user.findUnique({
             where: { email: (_b = (_a = profile.emails) == null ? void 0 : _a[0]) == null ? void 0 : _b.value }
           });
           if (existingUserByEmail) {
-            user = await prisma5.user.update({
+            user = await prisma.user.update({
               where: { email: (_d = (_c = profile.emails) == null ? void 0 : _c[0]) == null ? void 0 : _d.value },
               data: {
                 googleId: profile.id,
@@ -22123,7 +22234,7 @@ import_passport2.default.use(
             });
           } else {
             const userName = (_h = (_g = profile.emails) == null ? void 0 : _g[0]) == null ? void 0 : _h.value.split("@")[0];
-            user = await prisma5.user.create({
+            user = await prisma.user.create({
               data: {
                 googleId: profile.id,
                 email: ((_j = (_i = profile.emails) == null ? void 0 : _i[0]) == null ? void 0 : _j.value) || "",
@@ -22149,7 +22260,7 @@ import_passport2.default.serializeUser((user, done) => {
 });
 import_passport2.default.deserializeUser(async (id, done) => {
   try {
-    const user = await prisma5.user.findUnique({ where: { id } });
+    const user = await prisma.user.findUnique({ where: { id } });
     done(null, user);
   } catch (err) {
     done(err, null);
@@ -22211,8 +22322,6 @@ function v4(options, buf, offset) {
 var v4_default = v4;
 
 // src/controllers/contestController.ts
-var import_client6 = require("@prisma/client");
-var prisma6 = new import_client6.PrismaClient();
 var createContest = async (req, res) => {
   var _a;
   try {
@@ -22220,7 +22329,7 @@ var createContest = async (req, res) => {
     if (!parced.success) {
       return res.status(400).json({ error: parced.error });
     }
-    const { title, description, startTime, endTime, visibility, problems, points } = parced.data;
+    const { title, description, startTime, endTime, visibility, problems, points, durationMs, bestOf } = parced.data;
     const currentDate = /* @__PURE__ */ new Date();
     if (new Date(startTime) <= currentDate) {
       return res.status(400).json({ message: "Start time must be after current time" });
@@ -22229,7 +22338,7 @@ var createContest = async (req, res) => {
       return res.status(400).json({ message: "End time must be after start time" });
     }
     const uniqueTitle = title + " " + Date.now();
-    await prisma6.contest.create({
+    await prisma.contest.create({
       data: {
         title: uniqueTitle,
         description,
@@ -22237,9 +22346,12 @@ var createContest = async (req, res) => {
         endTime,
         status: "Scheduled",
         visibility,
+        durationMs,
         linkToken: v4_default(),
         createdById: (_a = req == null ? void 0 : req.user) == null ? void 0 : _a.id,
         points,
+        bestOf: bestOf || 0,
+        // Default to 0 if not provided
         problems: {
           create: problems.map((problem) => ({
             problemId: problem.problemId,
@@ -22260,7 +22372,7 @@ var createContest = async (req, res) => {
 var getFeedContests = async (req, res) => {
   const userId = req.params.userId;
   try {
-    const upcomming = await prisma6.contest.findMany({
+    const upcomming = await prisma.contest.findMany({
       where: {
         visibility: "Public",
         status: "Scheduled"
@@ -22273,7 +22385,7 @@ var getFeedContests = async (req, res) => {
         endTime: true
       }
     });
-    const live = await prisma6.contest.findMany({
+    const live = await prisma.contest.findMany({
       where: {
         visibility: "Public",
         status: "Ongoing"
@@ -22286,7 +22398,7 @@ var getFeedContests = async (req, res) => {
         endTime: true
       }
     });
-    const completed = await prisma6.contest.findMany({
+    const completed = await prisma.contest.findMany({
       where: {
         visibility: "Public",
         status: "Completed"
@@ -22301,7 +22413,7 @@ var getFeedContests = async (req, res) => {
     });
     let completedByYou, registerd;
     if (userId) {
-      completedByYou = await prisma6.contest.findMany({
+      completedByYou = await prisma.contest.findMany({
         where: {
           participants: {
             some: {
@@ -22318,7 +22430,7 @@ var getFeedContests = async (req, res) => {
           endTime: true
         }
       });
-      registerd = await prisma6.contest.findMany({
+      registerd = await prisma.contest.findMany({
         where: {
           participants: {
             some: {
@@ -22355,7 +22467,7 @@ var getFeedContests = async (req, res) => {
 var getContestRegisterDetails = async (req, res) => {
   const { contestId, userId } = req.params;
   try {
-    let contest = await prisma6.contest.findUnique({
+    let contest = await prisma.contest.findUnique({
       where: {
         id: contestId
       },
@@ -22365,6 +22477,7 @@ var getContestRegisterDetails = async (req, res) => {
         description: true,
         startTime: true,
         endTime: true,
+        durationMs: true,
         status: true,
         createdBy: {
           select: {
@@ -22379,7 +22492,7 @@ var getContestRegisterDetails = async (req, res) => {
     if (!contest) {
       return res.status(500).json({ message: "Contest not found" });
     }
-    const existingParticipant = userId ? await prisma6.contestParticipant.findFirst({
+    const existingParticipant = userId ? await prisma.contestParticipant.findFirst({
       where: {
         contestId,
         userId
@@ -22387,7 +22500,8 @@ var getContestRegisterDetails = async (req, res) => {
     }) : null;
     const contestWithRegistration = {
       ...contest,
-      isRegistered: existingParticipant ? true : false
+      isRegistered: existingParticipant ? true : false,
+      joinedAt: (existingParticipant == null ? void 0 : existingParticipant.joinedAt) || null
     };
     return res.status(200).json(contestWithRegistration);
   } catch (error) {
@@ -22399,12 +22513,17 @@ var getContestRegisterDetails = async (req, res) => {
 };
 var registerUserForContest = async (req, res) => {
   var _a, _b;
+  const { contestId } = req.params;
   try {
-    const { contestId } = req.params;
+    const parced = import_code_champ_common3.registerUserForContestSchema.safeParse(req.body);
+    if (!parced.success) {
+      return res.status(400).json({ error: parced.error });
+    }
+    const { enrollmentNum } = parced.data;
     if (!contestId) {
       return res.status(400).json({ message: "Invalid contest ID" });
     }
-    const existingParticipant = await prisma6.contestParticipant.findFirst({
+    const existingParticipant = await prisma.contestParticipant.findFirst({
       where: {
         contestId,
         userId: (_a = req == null ? void 0 : req.user) == null ? void 0 : _a.id
@@ -22413,9 +22532,10 @@ var registerUserForContest = async (req, res) => {
     if (existingParticipant) {
       return res.status(400).json({ message: "You have already registered for this contest" });
     }
-    await prisma6.contestParticipant.create({
+    await prisma.contestParticipant.create({
       data: {
         contestId,
+        enrollmentNum: String(enrollmentNum),
         userId: (_b = req == null ? void 0 : req.user) == null ? void 0 : _b.id,
         score: 0
       }
@@ -22435,7 +22555,7 @@ var getLiveContestDetails = async (req, res) => {
     if (!contestId) {
       return res.status(400).json({ message: "invalid contest Id" });
     }
-    const isParticipant = await prisma6.contestParticipant.findFirst({
+    const isParticipant = await prisma.contestParticipant.findFirst({
       where: {
         contestId,
         userId: (_a = req.user) == null ? void 0 : _a.id
@@ -22444,7 +22564,7 @@ var getLiveContestDetails = async (req, res) => {
     if (!isParticipant) {
       return res.status(400).json({ message: "You haven't registerd" });
     }
-    const liveContest = await prisma6.contest.findFirst({
+    const liveContest = await prisma.contest.findFirst({
       where: {
         id: contestId,
         status: "Ongoing"
@@ -22454,6 +22574,8 @@ var getLiveContestDetails = async (req, res) => {
         title: true,
         startTime: true,
         endTime: true,
+        durationMs: true,
+        bestOf: true,
         problems: {
           select: {
             id: true,
@@ -22462,6 +22584,7 @@ var getLiveContestDetails = async (req, res) => {
             problem: {
               select: {
                 title: true,
+                testCasesCount: true,
                 id: true
               }
             }
@@ -22477,6 +22600,7 @@ var getLiveContestDetails = async (req, res) => {
                 userName: true
               }
             },
+            enrollmentNum: true,
             score: true
           }
         }
@@ -22486,22 +22610,34 @@ var getLiveContestDetails = async (req, res) => {
       ...liveContest,
       participantId: isParticipant == null ? void 0 : isParticipant.id,
       yourScore: isParticipant == null ? void 0 : isParticipant.score,
+      joinedAt: isParticipant == null ? void 0 : isParticipant.joinedAt,
       problems: (liveContest == null ? void 0 : liveContest.problems) ? await Promise.all(
         liveContest.problems.map(async (problem) => {
-          const isSolved = await prisma6.contestSubmission.findFirst({
+          let attemptState = "Not Attempted";
+          const lastSubmission = await prisma.contestSubmission.findFirst({
             where: {
               contestProblemId: problem.id,
-              createdByParticipantId: isParticipant == null ? void 0 : isParticipant.id,
-              status: "Accepted"
+              createdByParticipantId: isParticipant == null ? void 0 : isParticipant.id
+            },
+            orderBy: {
+              createdAt: "desc"
             }
           });
+          if (lastSubmission && (lastSubmission == null ? void 0 : lastSubmission.status) === "Accepted") {
+            attemptState = "Accepted";
+          }
+          if (lastSubmission && (lastSubmission == null ? void 0 : lastSubmission.status) !== "Accepted") {
+            attemptState = "Attempted";
+          }
           return {
             points: problem.points,
+            scoredPoints: (lastSubmission == null ? void 0 : lastSubmission.points) || 0,
             order: problem.order,
+            testCasesCount: problem.problem.testCasesCount,
             contestProblemId: problem.id,
             problemId: problem.problem.id,
             title: problem.problem.title,
-            isSolved: isSolved ? true : false
+            attemptState
           };
         })
       ) : [],
@@ -22511,7 +22647,8 @@ var getLiveContestDetails = async (req, res) => {
           userName: participant.user.userName || "",
           profileImg: participant.user.profileImg || "",
           avatar: participant.user.avatar || "",
-          score: participant.score
+          score: participant.score,
+          enrollmentNum: participant.enrollmentNum || ""
         };
       })) || []
     };
@@ -22531,7 +22668,7 @@ var getLiveContestDetails = async (req, res) => {
 var getLeaderBard = async (req, res) => {
   const { contestId } = req.params;
   try {
-    const leaderBoard = await prisma6.contestParticipant.findMany({
+    const leaderBoard = await prisma.contestParticipant.findMany({
       where: {
         contestId
       },
@@ -22544,7 +22681,8 @@ var getLeaderBard = async (req, res) => {
             profileImg: true
           }
         },
-        score: true
+        score: true,
+        enrollmentNum: true
       },
       orderBy: {
         score: "desc"
@@ -22555,7 +22693,8 @@ var getLeaderBard = async (req, res) => {
       userName: entry.user.userName,
       profileImg: entry.user.profileImg,
       avatar: entry.user.avatar,
-      score: entry.score
+      score: entry.score,
+      enrollmentNum: entry.enrollmentNum
     }));
     return res.status(200).json(normalizedLeaderBoard);
   } catch (err) {
@@ -22578,12 +22717,10 @@ var contestRouter_default = contestRouter;
 
 // src/services/cronJobs.ts
 var import_node_cron = __toESM(require("node-cron"));
-var import_client7 = require("@prisma/client");
-var prisma7 = new import_client7.PrismaClient();
 var updateContestStatus = async () => {
   const now = /* @__PURE__ */ new Date();
   try {
-    await prisma7.contest.updateMany({
+    await prisma.contest.updateMany({
       where: {
         status: "Scheduled",
         startTime: { lte: now }
@@ -22591,7 +22728,7 @@ var updateContestStatus = async () => {
       },
       data: { status: "Ongoing" }
     });
-    await prisma7.contest.updateMany({
+    await prisma.contest.updateMany({
       where: {
         status: "Ongoing",
         endTime: { lte: now }
@@ -22611,15 +22748,13 @@ console.log("Contest status cron job started...");
 var import_express4 = require("express");
 
 // src/controllers/contestProblemController.ts
-var import_client8 = require("@prisma/client");
 var import_code_champ_common4 = require("@aayushlad/code-champ-common");
 var import_axios2 = __toESM(require("axios"));
-var prisma8 = new import_client8.PrismaClient();
 async function getContestProblem(req, res) {
   var _a, _b, _c;
   const { contestProblemId, participantId } = req.params;
   try {
-    const problem = await prisma8.contestProblem.findFirst({
+    const problem = await prisma.contestProblem.findFirst({
       where: { id: contestProblemId },
       select: {
         id: true,
@@ -22655,13 +22790,12 @@ async function getContestProblem(req, res) {
       order: problem == null ? void 0 : problem.order,
       points: problem == null ? void 0 : problem.points
     };
-    console.log(updatedProblem);
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
     let solutions = "";
     if (participantId && participantId !== "undefined") {
-      const ongoingProblem = await prisma8.ongoingContestProblem.findFirst({
+      const ongoingProblem = await prisma.ongoingContestProblem.findFirst({
         where: {
           participantId,
           contestProblemId
@@ -22696,11 +22830,11 @@ async function putOngoingContestProblem(req, res) {
     const parsed = import_code_champ_common4.putOngoingContestProblemSchma.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { contestProblemId, participantId, solutions } = parsed.data;
-    const existingProblem = await prisma8.ongoingContestProblem.findFirst({
+    const existingProblem = await prisma.ongoingContestProblem.findFirst({
       where: { contestProblemId, participantId }
     });
     if (!existingProblem) {
-      await prisma8.ongoingContestProblem.create({
+      await prisma.ongoingContestProblem.create({
         data: {
           contestProblemId,
           participantId,
@@ -22708,7 +22842,7 @@ async function putOngoingContestProblem(req, res) {
         }
       });
     } else {
-      await prisma8.ongoingContestProblem.update({
+      await prisma.ongoingContestProblem.update({
         where: { id: existingProblem.id },
         data: {
           solutions
@@ -22725,7 +22859,7 @@ async function putOngoingContestProblem(req, res) {
 async function getOngoingContestProblem(req, res) {
   const { contestProblemId, participantId } = req.params;
   try {
-    const ongoingContestProblem = await prisma8.ongoingContestProblem.findFirst({
+    const ongoingContestProblem = await prisma.ongoingContestProblem.findFirst({
       where: { participantId, contestProblemId },
       select: {
         solutions: true
@@ -22743,7 +22877,7 @@ async function testContestSolution(req, res) {
     const parsed = import_code_champ_common4.sumitContestSolutionSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { problemId, languageId, solutionCode } = parsed.data;
-    const problem = await prisma8.problem.findFirst({
+    const problem = await prisma.problem.findFirst({
       where: { id: problemId },
       select: {
         id: true,
@@ -22759,7 +22893,7 @@ async function testContestSolution(req, res) {
     const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
     const encodedFinalCode = Buffer.from(finalCode).toString("base64");
     const id = Math.random().toString(36).substring(7);
-    const response = await import_axios2.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+    const response = await import_axios2.default.post(`${process.env.CODESANDBOX_HOST}/submit-batch-task`, {
       submissionId: id,
       languageId,
       code: encodedFinalCode,
@@ -22783,7 +22917,23 @@ async function submitContestSolution(req, res) {
     const parsed = import_code_champ_common4.sumitContestSolutionSchema.safeParse(req.body);
     if (!parsed.success) return res.status(422).json({ message: "Invalid data" });
     const { problemId, contestProblemId, participantId, languageId, solutionCode } = parsed.data;
-    const problem = await prisma8.problem.findFirst({
+    const isParticipant = await prisma.contestParticipant.findFirst({
+      where: { id: participantId },
+      select: {
+        joinedAt: true,
+        contest: {
+          select: {
+            durationMs: true
+          }
+        }
+      }
+    });
+    if (!isParticipant) return res.status(404).json({ message: "Participant not found" });
+    const contestEndTime = new Date(isParticipant.joinedAt.getTime() + Number(isParticipant.contest.durationMs));
+    if (contestEndTime < /* @__PURE__ */ new Date()) {
+      return res.status(403).json({ message: "Contest has ended, you cannot submit solutions now" });
+    }
+    const problem = await prisma.problem.findFirst({
       where: { id: problemId },
       select: {
         id: true,
@@ -22798,7 +22948,7 @@ async function submitContestSolution(req, res) {
     const solutionCodee = parcedSubmissionCode[idToLanguageMappings[languageId]];
     const finalCode = solutionCodee.replace("{solution_code}", solutionCode);
     const encodedFinalCode = Buffer.from(finalCode).toString("base64");
-    const submission = await prisma8.contestSubmission.create({
+    const submission = await prisma.contestSubmission.create({
       data: {
         contestProblemId,
         code: solutionCode,
@@ -22808,7 +22958,7 @@ async function submitContestSolution(req, res) {
         createdByParticipantId: participantId
       }
     });
-    const response = await import_axios2.default.post("https://codesandbox.code-champ.xyz/submit-batch-task", {
+    const response = await import_axios2.default.post(`${process.env.CODESANDBOX_HOST}/submit-batch-task`, {
       submissionId: submission.id,
       languageId,
       code: encodedFinalCode,
@@ -22832,7 +22982,7 @@ async function checkContestBatchSubmission(req, res) {
   var _a;
   try {
     const { taskId, contestProblemId } = req.params;
-    const result = await import_axios2.default.get(`https://codesandbox.code-champ.xyz/batch-task-status/${taskId}`);
+    const result = await import_axios2.default.get(`${process.env.CODESANDBOX_HOST}/batch-task-status/${taskId}`);
     const editedResult = {
       ...result.data,
       contestProblemId,
@@ -22853,7 +23003,7 @@ async function checkContestBatchSubmission(req, res) {
 async function getContestSubmissions(req, res) {
   try {
     const { contestProblemId, participantId } = req.params;
-    const submission = await prisma8.contestSubmission.findMany({
+    const submission = await prisma.contestSubmission.findMany({
       where: {
         createdByParticipantId: participantId,
         contestProblemId
@@ -22889,22 +23039,177 @@ contestProblemRouter.get("/check/:taskId/:contestProblemId", authMiddleware, che
 contestProblemRouter.get("/submissions/:contestProblemId/:participantId", authMiddleware, getContestSubmissions);
 var contestProblemRouter_default = contestProblemRouter;
 
+// src/routes/adminRouter.ts
+var import_express5 = require("express");
+
+// src/controllers/adminController.ts
+var import_jsonwebtoken4 = __toESM(require("jsonwebtoken"));
+var adminLogin = (req, res) => {
+  const { password } = req.body;
+  if (password === process.env.ADMIN_PASSWORD) {
+    const token = import_jsonwebtoken4.default.sign({ isAdmin: true }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    res.cookie("admin-token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 60 * 60 * 1e3
+      // 1 hour
+    });
+    return res.status(200).json({ message: "Admin logged in successfully" });
+  }
+  return res.status(401).json({ message: "Invalid admin password" });
+};
+var adminLogout = (req, res) => {
+  res.clearCookie("admin-token", { httpOnly: true, secure: true, sameSite: "none" });
+  return res.status(200).json({ message: "Admin logged out successfully" });
+};
+var adminStatus = (req, res) => {
+  return res.status(200).json({ message: "You are logged in as admin!" });
+};
+var getQuestionRequests = async (req, res) => {
+  try {
+    const questions = await prisma.problem.findMany({
+      where: {
+        approved: false
+      },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            userName: true
+          }
+        }
+      }
+    });
+    res.status(200).json([...questions]);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var getContestRequests = async (req, res) => {
+  try {
+    const contests = await prisma.contest.findMany({
+      where: {
+        approved: false
+      },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            userName: true
+          }
+        }
+      }
+    });
+    res.status(200).json([...contests]);
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var approveQuestionRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const question = await prisma.problem.update({
+      where: { id },
+      data: { approved: true }
+    });
+    res.status(200).json({
+      message: "Question request approved successfully"
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var approveContestRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const contest = await prisma.contest.update({
+      where: { id },
+      data: { approved: true }
+    });
+    res.status(200).json({
+      message: "Contest request approved successfully"
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var rejectQuestionRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const question = await prisma.problem.delete({
+      where: { id }
+    });
+    res.status(200).json({
+      message: "Question request rejected successfully"
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+var rejectContestRequest = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const contest = await prisma.contest.delete({
+      where: { id }
+    });
+    res.status(200).json({
+      message: "Contest request rejected successfully"
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+
+// src/routes/adminRouter.ts
+var adminRouter = (0, import_express5.Router)();
+adminRouter.post("/login", adminLogin);
+adminRouter.post("/logout", adminLogout);
+adminRouter.get("/status", adminMiddleware, adminStatus);
+adminRouter.get("/question-requests", adminMiddleware, getQuestionRequests);
+adminRouter.get("/contest-requests", adminMiddleware, getContestRequests);
+adminRouter.post("/question-requests/:id/approve", adminMiddleware, approveQuestionRequest);
+adminRouter.post("/contest-requests/:id/approve", adminMiddleware, approveContestRequest);
+adminRouter.post("/question-requests/:id/reject", adminMiddleware, rejectQuestionRequest);
+adminRouter.post("/contest-requests/:id/reject", adminMiddleware, rejectContestRequest);
+var adminRouter_default = adminRouter;
+
 // src/index.ts
-var app = (0, import_express5.default)();
+var app = (0, import_express6.default)();
 var PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 app.use(
   (0, import_cors.default)({
-    origin: ["https://app.code-champ.xyz", "http://localhost:5173"],
+    origin: ["https://app.codechamp.online", "http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   })
 );
 app.use(import_body_parser.default.json({ limit: "50mb" }));
-app.use(import_express5.default.json());
+app.use(import_express6.default.json());
 app.use((0, import_cookie_parser.default)());
 app.disable("x-powerd-by");
-app.use(import_express5.default.urlencoded({ extended: true }));
+app.use(import_express6.default.urlencoded({ extended: true }));
 app.use((0, import_morgan.default)("tiny"));
 app.use(
   (0, import_express_session.default)({
@@ -22925,12 +23230,42 @@ app.use(passportMiddleware_default.session());
 app.get("/", (req, res) => {
   res.send("Welcome, This is code champ server \u{1F525}.");
 });
+app.use("/admin", adminRouter_default);
 app.use("/user", userRoutes_default);
 app.use("/problem", problemRouter_default);
 app.use("/contest", contestRouter_default);
 app.use("/contest-problem", contestProblemRouter_default);
-app.listen(PORT, () => {
+var server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+var gracefulShutdown = async (signal) => {
+  console.log(`
+${signal} received. Starting graceful shutdown...`);
+  server.close(async () => {
+    console.log("HTTP server closed");
+    try {
+      await disconnectPrisma();
+      console.log("Database connections closed");
+      process.exit(0);
+    } catch (error) {
+      console.error("Error during shutdown:", error);
+      process.exit(1);
+    }
+  });
+  setTimeout(() => {
+    console.error("Could not close connections in time, forcefully shutting down");
+    process.exit(1);
+  }, 3e4);
+};
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  gracefulShutdown("uncaughtException");
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  gracefulShutdown("unhandledRejection");
 });
 /*! Bundled license information:
 

@@ -47,8 +47,6 @@ export async function getContestProblem(req: Request, res: Response) {
             points: problem?.points,
         };
 
-        console.log(updatedProblem);
-
         if (!problem) {
             return res.status(404).json({ message: "Problem not found" });
         }
