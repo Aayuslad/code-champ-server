@@ -31,19 +31,25 @@ app.use(cookieParser());
 app.disable("x-powerd-by");
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("tiny"));
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET as string,
-        resave: false,
-        saveUninitialized: true,
-        cookie: {
-            maxAge: 5 * 60 * 1000, // 5 minutes
-            secure: true,
-            httpOnly: true,
-            sameSite: "none",
-        },
-    }),
-);
+
+// Production-ready session configuration
+const sessionConfig = {
+    secret: process.env.SESSION_SECRET as string,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 5 * 60 * 1000, // 5 minutes
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    },
+    // Use MemoryStore only in development
+    store: process.env.NODE_ENV === 'production' 
+        ? undefined // Vercel will handle this
+        : new (require('express-session').MemoryStore)(),
+};
+
+app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
