@@ -1,4 +1,5 @@
 import { transporter } from "../config/mailTransporter";
+import logger from "../lib/logger";
 
 export async function sendOTPMail(to: string, otp: number): Promise<boolean> {
 	try {
@@ -40,6 +41,7 @@ export async function sendOTPMail(to: string, otp: number): Promise<boolean> {
 
 		return true;
 	} catch (error) {
+        logger.error("Error sending OTP email:", error);
 		return false;
 	}
 }

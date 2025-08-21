@@ -71,7 +71,17 @@ export async function signupUser(req: Request, res: Response) {
         req.session.userName = userName;
         req.session.password = password;
 
+        logger.info("Data stored in session for signup:", {
+            email: req.session.signupEmail,  
+            name: req.session.name,
+            userName: req.session.userName,
+            password: req.session.password,
+            otp: req.session.signupOTP,
+        })
+
         await sendOTPMail(email, otp);
+
+        logger.info("OTP sent to email");
 
         return res.status(200).json({
             message: "OTP Sent to Email",
@@ -91,6 +101,14 @@ export async function verifySignupOTP(req: Request, res: Response) {
     try {
         const parsed = verifySignupOTPSchema.safeParse({ otp });
         if (!parsed.success) return res.status(422).json({ message: "Invalid OTP" });
+
+        logger.info("Verifying OTP for signup:", {
+            otp: otp,
+            sessionOTP: req.session.signupOTP,
+            email: req.session.signupEmail,
+            name: req.session.name,
+            userName: req.session.userName,
+        });
 
         if (parseInt(otp) !== req.session.signupOTP) {
             return res.status(400).json({
