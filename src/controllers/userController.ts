@@ -489,6 +489,8 @@ export async function googleOAuth20Controller(req: Request, res: Response) {
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
         });
 
+        logger.info("token cookie and User authenticated via Google OAuth:", req.user.id);
+
         const redirectUrl = "https://app.codechamp.online/problems";
         res.redirect(redirectUrl);
     } catch (error) {
@@ -541,6 +543,8 @@ export async function googleOneTapController(req: Request, res: Response) {
                         avatar,
                     },
                 });
+
+                logger.info("New user created via Google One Tap:", JSON.stringify(user));
             }
         }
 
@@ -551,6 +555,8 @@ export async function googleOneTapController(req: Request, res: Response) {
             sameSite: "none",
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
         });
+
+        logger.info("token cookie & User authenticated via Google One Tap:", user.id);
 
         res.status(200).json({ success: true });
     } catch (error) {

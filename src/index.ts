@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 app.use(
     cors({
-        origin: ["https://app.codechamp.online", "http://localhost:5173", "http://localhost:5174"],
+        origin: ["https://app.codechamp.online", "http://localhost:5173", "http://localhost:5174", "http://app.codechamp.online"],
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true,
     }),
@@ -45,10 +45,6 @@ const sessionConfig = {
         httpOnly: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     },
-    // Use MemoryStore only in development
-    store: process.env.NODE_ENV === 'production' 
-        ? undefined // Vercel will handle this
-        : new (require('express-session').MemoryStore)(),
 };
 
 app.use(session(sessionConfig));

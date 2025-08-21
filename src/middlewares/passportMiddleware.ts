@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { prisma } from "../lib/prisma";
+import logger from "../lib/logger";
 
 passport.use(
     new GoogleStrategy(
@@ -11,6 +12,8 @@ passport.use(
         },
         async (accessToken, refreshToken, profile, done) => {
             try {
+                logger.info("Google OAuth callback received for user:", JSON.stringify(profile));
+
                 // Check if user already exists
                 let user = await prisma.user.findUnique({
                     where: { googleId: profile.id },
@@ -43,6 +46,8 @@ passport.use(
                                 avatar: profile.photos?.[0]?.value || null,
                             },
                         });
+
+                        logger.info("New user created:", JSON.stringify(user));
                     }
                 }
 
