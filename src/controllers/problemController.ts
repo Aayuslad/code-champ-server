@@ -6,6 +6,7 @@ import {
     TestCaseType,
 } from "@aayushlad/code-champ-common";
 import axios from "axios";
+import logger from "../lib/logger";
 import { Request, Response } from "express";
 import { idToLanguageMappings } from "../config/languageIdmappings";
 import { generateUniqueSlug } from "../helper/generateUniqueSlug";
@@ -110,7 +111,7 @@ export async function contributeProblem(req: Request, res: Response) {
             problem: newProblem,
         });
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -377,7 +378,7 @@ export async function testSolution(req: Request, res: Response) {
 
         return;
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -444,7 +445,7 @@ export async function submitSolution(req: Request, res: Response) {
 
         return;
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -468,7 +469,7 @@ export async function checkBatchSubmission(req: Request, res: Response) {
         };
         return res.json(editedResult);
     } catch (err) {
-        console.log(err);
+        logger.error(err);
 
         res.status(500).json({
             message: "Internal Server Error",

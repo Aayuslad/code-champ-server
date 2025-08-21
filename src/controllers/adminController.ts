@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
+import logger from "../lib/logger";
 
 export const adminLogin = (req: Request, res: Response) => {
     const { password } = req.body;
@@ -50,6 +51,7 @@ export const getQuestionRequests = async (req: Request, res: Response) => {
 
         res.status(200).json([...questions]);
     } catch (err) {
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -79,6 +81,7 @@ export const getContestRequests = async (req: Request, res: Response) => {
 
         res.status(200).json([...contests]);
     } catch (err) {
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -98,6 +101,7 @@ export const approveQuestionRequest = async (req: Request, res: Response) => {
             message: "Question request approved successfully",
         });
     } catch (err) {
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -117,6 +121,7 @@ export const approveContestRequest = async (req: Request, res: Response) => {
             message: "Contest request approved successfully",
         });
     } catch (err) {
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });

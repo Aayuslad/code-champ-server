@@ -2,6 +2,7 @@ import { createContestSchma, registerUserForContestSchema } from "@aayushlad/cod
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../lib/prisma";
+import logger from "../lib/logger";
 
 // create contest
 export const createContest = async (req: Request, res: Response) => {
@@ -49,7 +50,7 @@ export const createContest = async (req: Request, res: Response) => {
 
         return res.status(201).json({ message: "Contest created successfully" });
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(500).json({
             message: "Internal Server Error",
         });
@@ -152,7 +153,7 @@ export const getFeedContests = async (req: Request, res: Response) => {
             completedByYou,
         });
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(500).json({
             message: "Internal Server Error",
         });
@@ -207,7 +208,7 @@ export const getContestRegisterDetails = async (req: Request, res: Response) => 
 
         return res.status(200).json(contestWithRegistration);
     } catch (error) {
-        console.log(error);
+        logger.error(error);
         return res.status(500).json({
             message: "Internal Server Error",
         });
@@ -250,7 +251,7 @@ export const registerUserForContest = async (req: Request, res: Response) => {
 
         return res.status(200).json({ message: "User registered for contest" });
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(500).json({
             message: "Internal Server Error",
         });
@@ -385,7 +386,7 @@ export const getLiveContestDetails = async (req: Request, res: Response) => {
 
         return res.status(200).json(flatenedContest);
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(500).json({
             message: "Internal Server Error",
         });
@@ -428,7 +429,7 @@ export const getLeaderBard = async (req: Request, res: Response) => {
 
         return res.status(200).json(normalizedLeaderBoard);
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(500).json({
             message: "Internal Server Error",
         });

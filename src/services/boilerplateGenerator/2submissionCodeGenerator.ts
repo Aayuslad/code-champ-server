@@ -286,7 +286,8 @@ if __name__ == "__main__":
         submissionCode = submissionCode.replace("{print_result}", printResult);
     }
 
-    console.log(submissionCode);
+    // Intentionally left as debug log; consider using centralized logger if needed
+    // logger.debug(submissionCode);
 
     const base64SubmissionCode = Buffer.from(submissionCode).toString("base64");
     return base64SubmissionCode;

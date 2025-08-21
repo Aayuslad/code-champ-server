@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { prisma } from "../lib/prisma";
+import logger from "../lib/logger";
 
 const updateContestStatus = async () => {
     const now = new Date();
@@ -23,13 +24,13 @@ const updateContestStatus = async () => {
             data: { status: "Completed" },
         });
 
-        console.log("Contest statuses updated successfully.");
+        logger.info("Contest statuses updated successfully.");
     } catch (error) {
-        console.error("Error updating contest statuses:", error);
+        logger.error("Error updating contest statuses:", error);
     }
 };
 
 // Schedule the cron job to run every minute
 cron.schedule("* * * * *", updateContestStatus);
 
-console.log("Contest status cron job started...");
+logger.info("Contest status cron job started...");

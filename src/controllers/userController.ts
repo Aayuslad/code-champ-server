@@ -11,6 +11,7 @@ import {
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
+import logger from "../lib/logger";
 const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const otpLength = 6;
@@ -75,7 +76,8 @@ export async function signupUser(req: Request, res: Response) {
         return res.status(200).json({
             message: "OTP Sent to Email",
         });
-    } catch {
+    } catch (error) {
+        logger.error(error);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -124,7 +126,8 @@ export async function verifySignupOTP(req: Request, res: Response) {
         req.session.password = undefined;
 
         return res.json({ message: "Successfully signed up!" });
-    } catch {
+    } catch (error) {
+        logger.error(error);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -279,6 +282,7 @@ export async function fetchWholeUserProfile(req: Request, res: Response) {
 
         return res.json(data);
     } catch (error) {
+        logger.error(error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
@@ -333,7 +337,7 @@ export async function signinUser(req: Request, res: Response) {
 
         return res.json({ message: "Successfully signed in!" });
     } catch (error) {
-        console.error("Error during sign in:", error);
+        logger.error("Error during sign in:", error);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -349,7 +353,7 @@ export async function signoutUser(req: Request, res: Response) {
         });
         return res.status(200).json({ message: "Signed Out" });
     } catch (error) {
-        console.error("Error during sign out:", error);
+        logger.error("Error during sign out:", error);
         return res.status(500).json({ message: "An error occurred during sign out" });
     }
 }
@@ -398,7 +402,8 @@ export async function sendPasswordResetOTP(req: Request, res: Response) {
         return res.status(200).json({
             message: "OTP Sent to Email",
         });
-    } catch {
+    } catch (error) {
+        logger.error(error);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -422,7 +427,8 @@ export async function verifyPasswordResetOTP(req: Request, res: Response) {
         req.session.canResetPassword = true;
 
         return res.json({ message: "OTP verified" });
-    } catch {
+    } catch (error) {
+        logger.error(error);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -460,7 +466,8 @@ export async function updatePassword(req: Request, res: Response) {
         req.session.canResetPassword = undefined;
 
         return res.json({ message: "Password updated" });
-    } catch {
+    } catch (error) {
+        logger.error(error);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -485,6 +492,7 @@ export async function googleOAuth20Controller(req: Request, res: Response) {
         const redirectUrl = "https://app.codechamp.online/problems";
         res.redirect(redirectUrl);
     } catch (error) {
+        logger.error(error);
         res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -546,6 +554,7 @@ export async function googleOneTapController(req: Request, res: Response) {
 
         res.status(200).json({ success: true });
     } catch (error) {
+        logger.error(error);
         res.status(500).json({ error: "Internal server error" });
     }
 }

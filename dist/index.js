@@ -82,7 +82,7 @@ var require_depd = __commonJS({
       var site = callSiteLocation(stack[1]);
       var file = site[0];
       function deprecate(message) {
-        log.call(deprecate, message);
+        log2.call(deprecate, message);
       }
       deprecate._file = file;
       deprecate._ignored = isignored(namespace);
@@ -111,7 +111,7 @@ var require_depd = __commonJS({
       var str = process.env.TRACE_DEPRECATION || "";
       return containsNamespace(str, namespace);
     }
-    function log(message, site) {
+    function log2(message, site) {
       var haslisteners = eehaslisteners(process, "deprecation");
       if (!haslisteners && this._ignored) {
         return;
@@ -159,8 +159,8 @@ var require_depd = __commonJS({
         process.emit("deprecation", err);
         return;
       }
-      var format = process.stderr.isTTY ? formatColor : formatPlain;
-      var output = format.call(this, msg, caller, stack.slice(i));
+      var format2 = process.stderr.isTTY ? formatColor : formatPlain;
+      var output = format2.call(this, msg, caller, stack.slice(i));
       process.stderr.write(output + "\n", "utf8");
     }
     function callSiteLocation(callSite) {
@@ -251,7 +251,7 @@ var require_depd = __commonJS({
         "message",
         "site",
         '"use strict"\nreturn function (' + args + ") {log.call(deprecate, message, site)\nreturn fn.apply(this, arguments)\n}"
-      )(fn, log, this, message, site);
+      )(fn, log2, this, message, site);
       return deprecatedfn;
     }
     function wrapproperty(obj, prop, message) {
@@ -276,13 +276,13 @@ var require_depd = __commonJS({
       var set = descriptor.set;
       if (typeof get === "function") {
         descriptor.get = function getter() {
-          log.call(deprecate, message, site);
+          log2.call(deprecate, message, site);
           return get.apply(this, arguments);
         };
       }
       if (typeof set === "function") {
         descriptor.set = function setter() {
-          log.call(deprecate, message, site);
+          log2.call(deprecate, message, site);
           return set.apply(this, arguments);
         };
       }
@@ -528,13 +528,13 @@ var require_inherits_browser = __commonJS({
 var require_inherits = __commonJS({
   "node_modules/inherits/inherits.js"(exports2, module2) {
     try {
-      util = require("util");
-      if (typeof util.inherits !== "function") throw "";
-      module2.exports = util.inherits;
+      util2 = require("util");
+      if (typeof util2.inherits !== "function") throw "";
+      module2.exports = util2.inherits;
     } catch (e) {
       module2.exports = require_inherits_browser();
     }
-    var util;
+    var util2;
   }
 });
 
@@ -879,12 +879,12 @@ var require_common = __commonJS({
             args.unshift("%O");
           }
           let index = 0;
-          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format2) => {
             if (match === "%%") {
               return "%";
             }
             index++;
-            const formatter = createDebug.formatters[format];
+            const formatter = createDebug.formatters[format2];
             if (typeof formatter === "function") {
               const val = args[index];
               match = formatter.call(self, val);
@@ -1291,14 +1291,14 @@ var require_supports_color = __commonJS({
 var require_node = __commonJS({
   "node_modules/debug/src/node.js"(exports2, module2) {
     var tty = require("tty");
-    var util = require("util");
+    var util2 = require("util");
     exports2.init = init;
-    exports2.log = log;
+    exports2.log = log2;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
     exports2.useColors = useColors;
-    exports2.destroy = util.deprecate(
+    exports2.destroy = util2.deprecate(
       () => {
       },
       "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`."
@@ -1428,8 +1428,8 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log(...args) {
-      return process.stderr.write(util.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
+    function log2(...args) {
+      return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
       if (namespaces) {
@@ -1452,11 +1452,11 @@ var require_node = __commonJS({
     var { formatters } = module2.exports;
     formatters.o = function(v) {
       this.inspectOpts.colors = this.useColors;
-      return util.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
+      return util2.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
     };
     formatters.O = function(v) {
       this.inspectOpts.colors = this.useColors;
-      return util.inspect(v, this.inspectOpts);
+      return util2.inspect(v, this.inspectOpts);
     };
   }
 });
@@ -1637,7 +1637,7 @@ var require_bytes = __commonJS({
   "node_modules/bytes/index.js"(exports2, module2) {
     "use strict";
     module2.exports = bytes;
-    module2.exports.format = format;
+    module2.exports.format = format2;
     module2.exports.parse = parse;
     var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
     var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
@@ -1655,11 +1655,11 @@ var require_bytes = __commonJS({
         return parse(value);
       }
       if (typeof value === "number") {
-        return format(value, options);
+        return format2(value, options);
       }
       return null;
     }
-    function format(value, options) {
+    function format2(value, options) {
       if (!Number.isFinite(value)) {
         return null;
       }
@@ -5720,9 +5720,9 @@ var require_content_type = __commonJS({
     var QESC_REGEXP = /\\([\u000b\u0020-\u00ff])/g;
     var QUOTE_REGEXP = /([\\"])/g;
     var TYPE_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
-    exports2.format = format;
+    exports2.format = format2;
     exports2.parse = parse;
-    function format(obj) {
+    function format2(obj) {
       if (!obj || typeof obj !== "object") {
         throw new TypeError("argument obj is required");
       }
@@ -15323,10 +15323,10 @@ var require_media_typer = __commonJS({
     var SUBTYPE_NAME_REGEXP = /^[A-Za-z0-9][A-Za-z0-9!#$&^_.-]{0,126}$/;
     var TYPE_NAME_REGEXP = /^[A-Za-z0-9][A-Za-z0-9!#$&^_-]{0,126}$/;
     var TYPE_REGEXP = /^ *([A-Za-z0-9][A-Za-z0-9!#$&^_-]{0,126})\/([A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}) *$/;
-    exports2.format = format;
+    exports2.format = format2;
     exports2.parse = parse;
     exports2.test = test;
-    function format(obj) {
+    function format2(obj) {
       if (!obj || typeof obj !== "object") {
         throw new TypeError("argument obj is required");
       }
@@ -17491,7 +17491,7 @@ var require_utils2 = __commonJS({
       }
     };
     var limit = 1024;
-    var encode = function encode2(str, defaultEncoder, charset, kind, format) {
+    var encode = function encode2(str, defaultEncoder, charset, kind, format2) {
       if (str.length === 0) {
         return str;
       }
@@ -17512,7 +17512,7 @@ var require_utils2 = __commonJS({
         var arr = [];
         for (var i = 0; i < segment.length; ++i) {
           var c = segment.charCodeAt(i);
-          if (c === 45 || c === 46 || c === 95 || c === 126 || c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || format === formats.RFC1738 && (c === 40 || c === 41)) {
+          if (c === 45 || c === 46 || c === 95 || c === 126 || c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || format2 === formats.RFC1738 && (c === 40 || c === 41)) {
             arr[arr.length] = segment.charAt(i);
             continue;
           }
@@ -17647,7 +17647,7 @@ var require_stringify = __commonJS({
       return typeof v === "string" || typeof v === "number" || typeof v === "boolean" || typeof v === "symbol" || typeof v === "bigint";
     };
     var sentinel = {};
-    var stringify = function stringify2(object, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
+    var stringify = function stringify2(object, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format2, formatter, encodeValuesOnly, charset, sideChannel) {
       var obj = object;
       var tmpSc = sideChannel;
       var step = 0;
@@ -17680,14 +17680,14 @@ var require_stringify = __commonJS({
       }
       if (obj === null) {
         if (strictNullHandling) {
-          return encoder && !encodeValuesOnly ? encoder(prefix, defaults.encoder, charset, "key", format) : prefix;
+          return encoder && !encodeValuesOnly ? encoder(prefix, defaults.encoder, charset, "key", format2) : prefix;
         }
         obj = "";
       }
       if (isNonNullishPrimitive(obj) || utils.isBuffer(obj)) {
         if (encoder) {
-          var keyValue = encodeValuesOnly ? prefix : encoder(prefix, defaults.encoder, charset, "key", format);
-          return [formatter(keyValue) + "=" + formatter(encoder(obj, defaults.encoder, charset, "value", format))];
+          var keyValue = encodeValuesOnly ? prefix : encoder(prefix, defaults.encoder, charset, "key", format2);
+          return [formatter(keyValue) + "=" + formatter(encoder(obj, defaults.encoder, charset, "value", format2))];
         }
         return [formatter(prefix) + "=" + formatter(String(obj))];
       }
@@ -17737,7 +17737,7 @@ var require_stringify = __commonJS({
           sort,
           allowDots,
           serializeDate,
-          format,
+          format2,
           formatter,
           encodeValuesOnly,
           charset,
@@ -17763,14 +17763,14 @@ var require_stringify = __commonJS({
       if (typeof opts.charset !== "undefined" && opts.charset !== "utf-8" && opts.charset !== "iso-8859-1") {
         throw new TypeError("The charset option must be either utf-8, iso-8859-1, or undefined");
       }
-      var format = formats["default"];
+      var format2 = formats["default"];
       if (typeof opts.format !== "undefined") {
         if (!has.call(formats.formatters, opts.format)) {
           throw new TypeError("Unknown format option provided.");
         }
-        format = opts.format;
+        format2 = opts.format;
       }
-      var formatter = formats.formatters[format];
+      var formatter = formats.formatters[format2];
       var filter = defaults.filter;
       if (typeof opts.filter === "function" || isArray(opts.filter)) {
         filter = opts.filter;
@@ -17801,7 +17801,7 @@ var require_stringify = __commonJS({
         encoder: typeof opts.encoder === "function" ? opts.encoder : defaults.encoder,
         encodeValuesOnly: typeof opts.encodeValuesOnly === "boolean" ? opts.encodeValuesOnly : defaults.encodeValuesOnly,
         filter,
-        format,
+        format: format2,
         formatter,
         serializeDate: typeof opts.serializeDate === "function" ? opts.serializeDate : defaults.serializeDate,
         skipNulls: typeof opts.skipNulls === "boolean" ? opts.skipNulls : defaults.skipNulls,
@@ -18358,52 +18358,93 @@ var import_bcrypt = __toESM(require("bcrypt"));
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"));
 
 // src/lib/prisma.ts
-var import_edge = require("@prisma/client/edge");
-var import_extension_accelerate = require("@prisma/extension-accelerate");
-var prisma = globalThis.__prisma || new import_edge.PrismaClient({
+var import_client = require("@prisma/client");
+
+// src/lib/logger.ts
+var import_util = __toESM(require("util"));
+function format(message, ...optionalParams) {
+  if (optionalParams && optionalParams.length) {
+    return import_util.default.format(message, ...optionalParams);
+  }
+  if (typeof message === "object") {
+    try {
+      return JSON.stringify(message);
+    } catch {
+      return String(message);
+    }
+  }
+  return String(message ?? "");
+}
+function log(level, message, ...optionalParams) {
+  const time = (/* @__PURE__ */ new Date()).toISOString();
+  const formatted = format(message, ...optionalParams);
+  const line = `[${time}] [${level.toUpperCase()}] ${formatted}`;
+  switch (level) {
+    case "debug":
+      console.debug(line);
+      break;
+    case "info":
+      console.info(line);
+      break;
+    case "warn":
+      console.warn(line);
+      break;
+    case "error":
+      console.error(line);
+      break;
+  }
+}
+var logger = {
+  debug: (message, ...optionalParams) => log("debug", message, ...optionalParams),
+  info: (message, ...optionalParams) => log("info", message, ...optionalParams),
+  warn: (message, ...optionalParams) => log("warn", message, ...optionalParams),
+  error: (message, ...optionalParams) => log("error", message, ...optionalParams)
+};
+var logger_default = logger;
+
+// src/lib/prisma.ts
+var prisma = globalThis.__prisma || new import_client.PrismaClient({
   datasources: {
     db: {
       url: process.env.DATABASE_URL
     }
   },
-  // Connection pooling configuration for serverless
+  // Connection pooling configuration
   log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   errorFormat: "pretty"
-}).$extends((0, import_extension_accelerate.withAccelerate)());
+});
 if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
 }
 async function disconnectPrisma() {
   try {
     await prisma.$disconnect();
-    console.log("Prisma client disconnected successfully");
+    logger_default.info("Prisma client disconnected successfully");
   } catch (error) {
-    console.error("Error disconnecting Prisma client:", error);
+    logger_default.error("Error disconnecting Prisma client:", error);
   }
 }
-if (process.env.NODE_ENV !== "production") {
-  process.on("beforeExit", async () => {
-    await disconnectPrisma();
-  });
-  process.on("SIGINT", async () => {
-    await disconnectPrisma();
-    process.exit(0);
-  });
-  process.on("SIGTERM", async () => {
-    await disconnectPrisma();
-    process.exit(0);
-  });
-  process.on("uncaughtException", async (error) => {
-    console.error("Uncaught Exception:", error);
-    await disconnectPrisma();
-    process.exit(1);
-  });
-  process.on("unhandledRejection", async (reason, promise) => {
-    console.error("Unhandled Rejection at:", promise, "reason:", reason);
-    await disconnectPrisma();
-    process.exit(1);
-  });
-}
+process.on("beforeExit", async () => {
+  await disconnectPrisma();
+});
+process.on("SIGINT", async () => {
+  await disconnectPrisma();
+  process.exit(0);
+});
+process.on("SIGTERM", async () => {
+  await disconnectPrisma();
+  process.exit(0);
+});
+process.on("uncaughtException", async (error) => {
+  console.error("Uncaught Exception:", error);
+  await disconnectPrisma();
+  process.exit(1);
+});
+process.on("unhandledRejection", async (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  await disconnectPrisma();
+  process.exit(1);
+});
 
 // src/controllers/userController.ts
 var { OAuth2Client } = require("google-auth-library");
@@ -18454,7 +18495,8 @@ async function signupUser(req, res) {
     return res.status(200).json({
       message: "OTP Sent to Email"
     });
-  } catch {
+  } catch (error) {
+    logger_default.error(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -18494,7 +18536,8 @@ async function verifySignupOTP(req, res) {
     req.session.userName = void 0;
     req.session.password = void 0;
     return res.json({ message: "Successfully signed up!" });
-  } catch {
+  } catch (error) {
+    logger_default.error(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -18630,6 +18673,7 @@ async function fetchWholeUserProfile(req, res) {
     };
     return res.json(data);
   } catch (error) {
+    logger_default.error(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -18677,7 +18721,7 @@ async function signinUser(req, res) {
     });
     return res.json({ message: "Successfully signed in!" });
   } catch (error) {
-    console.error("Error during sign in:", error);
+    logger_default.error("Error during sign in:", error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -18692,7 +18736,7 @@ async function signoutUser(req, res) {
     });
     return res.status(200).json({ message: "Signed Out" });
   } catch (error) {
-    console.error("Error during sign out:", error);
+    logger_default.error("Error during sign out:", error);
     return res.status(500).json({ message: "An error occurred during sign out" });
   }
 }
@@ -18727,7 +18771,8 @@ async function sendPasswordResetOTP(req, res) {
     return res.status(200).json({
       message: "OTP Sent to Email"
     });
-  } catch {
+  } catch (error) {
+    logger_default.error(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -18745,7 +18790,8 @@ async function verifyPasswordResetOTP(req, res) {
     }
     req.session.canResetPassword = true;
     return res.json({ message: "OTP verified" });
-  } catch {
+  } catch (error) {
+    logger_default.error(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -18775,7 +18821,8 @@ async function updatePassword(req, res) {
     req.session.passwordResetEmail = void 0;
     req.session.canResetPassword = void 0;
     return res.json({ message: "Password updated" });
-  } catch {
+  } catch (error) {
+    logger_default.error(error);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -18797,6 +18844,7 @@ async function googleOAuth20Controller(req, res) {
     const redirectUrl = "https://app.codechamp.online/problems";
     res.redirect(redirectUrl);
   } catch (error) {
+    logger_default.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -18847,6 +18895,7 @@ async function googleOneTapController(req, res) {
     });
     res.status(200).json({ success: true });
   } catch (error) {
+    logger_default.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -19016,7 +19065,7 @@ var getObjectFromS3 = async (key) => {
     const data = Buffer.concat(chunks).toString("utf-8");
     return data;
   } catch (err) {
-    console.error("Error getting object from S3:", err);
+    logger_default.error("Error getting object from S3:", err);
     throw err;
   }
 };
@@ -19031,7 +19080,8 @@ var uploadJsonToS3 = async (key, jsonData) => {
     const response = await s3.send(command);
     return response;
   } catch (err) {
-    console.log("Error uploading object to S3:", err);
+    logger_default.error("Error uploading object to S3:", err);
+    throw err;
   }
 };
 var getSignedS3URL = async (key) => {
@@ -19043,7 +19093,8 @@ var getSignedS3URL = async (key) => {
     const url = await (0, import_s3_request_presigner.getSignedUrl)(s3, command, { expiresIn: 3600 });
     return url;
   } catch (error) {
-    console.log("Error signing URL");
+    logger_default.error("Error signing URL", error);
+    throw error;
   }
 };
 
@@ -19138,7 +19189,7 @@ async function contributeProblem(req, res) {
       problem: newProblem
     });
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19366,7 +19417,7 @@ async function testSolution(req, res) {
     });
     return;
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19425,7 +19476,7 @@ async function submitSolution(req, res) {
     });
     return;
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19447,7 +19498,7 @@ async function checkBatchSubmission(req, res) {
     };
     return res.json(editedResult);
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19699,6 +19750,20 @@ import_passport2.default.deserializeUser(async (id, done) => {
 });
 var passportMiddleware_default = import_passport2.default;
 
+// src/middlewares/errorMiddleware.ts
+function notFoundHandler(req, res) {
+  res.status(404).json({ message: "Route not found" });
+}
+function errorHandler(err, req, res, next) {
+  const statusCode = err.status || err.statusCode || 500;
+  const errorId = Date.now().toString(36);
+  logger_default.error({ errorId, message: (err == null ? void 0 : err.message) || "Unhandled error", stack: err == null ? void 0 : err.stack });
+  if (statusCode >= 500) {
+    return res.status(statusCode).json({ message: "Internal Server Error", errorId });
+  }
+  return res.status(statusCode).json({ message: err.message || "Error", errorId });
+}
+
 // src/routes/contestRouter.ts
 var import_express3 = require("express");
 
@@ -19794,7 +19859,7 @@ var createContest = async (req, res) => {
     });
     return res.status(201).json({ message: "Contest created successfully" });
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     return res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19889,7 +19954,7 @@ var getFeedContests = async (req, res) => {
       completedByYou
     });
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     return res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19936,7 +20001,7 @@ var getContestRegisterDetails = async (req, res) => {
     };
     return res.status(200).json(contestWithRegistration);
   } catch (error) {
-    console.log(error);
+    logger_default.error(error);
     return res.status(500).json({
       message: "Internal Server Error"
     });
@@ -19973,7 +20038,7 @@ var registerUserForContest = async (req, res) => {
     });
     return res.status(200).json({ message: "User registered for contest" });
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     return res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20090,7 +20155,7 @@ var getLiveContestDetails = async (req, res) => {
     });
     return res.status(200).json(flatenedContest);
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     return res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20129,7 +20194,7 @@ var getLeaderBard = async (req, res) => {
     }));
     return res.status(200).json(normalizedLeaderBoard);
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     return res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20167,13 +20232,13 @@ var updateContestStatus = async () => {
       },
       data: { status: "Completed" }
     });
-    console.log("Contest statuses updated successfully.");
+    logger_default.info("Contest statuses updated successfully.");
   } catch (error) {
-    console.error("Error updating contest statuses:", error);
+    logger_default.error("Error updating contest statuses:", error);
   }
 };
 import_node_cron.default.schedule("* * * * *", updateContestStatus);
-console.log("Contest status cron job started...");
+logger_default.info("Contest status cron job started...");
 
 // src/routes/contestProblemRouter.ts
 var import_express4 = require("express");
@@ -20337,7 +20402,7 @@ async function testContestSolution(req, res) {
     });
     return;
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20403,7 +20468,7 @@ async function submitContestSolution(req, res) {
     });
     return;
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20425,7 +20490,7 @@ async function checkContestBatchSubmission(req, res) {
     };
     return res.json(editedResult);
   } catch (err) {
-    console.log(err);
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20517,6 +20582,7 @@ var getQuestionRequests = async (req, res) => {
     });
     res.status(200).json([...questions]);
   } catch (err) {
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20544,6 +20610,7 @@ var getContestRequests = async (req, res) => {
     });
     res.status(200).json([...contests]);
   } catch (err) {
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20560,6 +20627,7 @@ var approveQuestionRequest = async (req, res) => {
       message: "Question request approved successfully"
     });
   } catch (err) {
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20576,6 +20644,7 @@ var approveContestRequest = async (req, res) => {
       message: "Contest request approved successfully"
     });
   } catch (err) {
+    logger_default.error(err);
     res.status(500).json({
       message: "Internal Server Error"
     });
@@ -20639,7 +20708,7 @@ app.use(
 app.use(import_body_parser.default.json({ limit: "50mb" }));
 app.use(import_express6.default.json());
 app.use((0, import_cookie_parser.default)());
-app.disable("x-powerd-by");
+app.disable("x-powered-by");
 app.use(import_express6.default.urlencoded({ extended: true }));
 app.use((0, import_morgan.default)("tiny"));
 var sessionConfig = {
@@ -20667,37 +20736,39 @@ app.use("/user", userRoutes_default);
 app.use("/problem", problemRouter_default);
 app.use("/contest", contestRouter_default);
 app.use("/contest-problem", contestProblemRouter_default);
+app.use(notFoundHandler);
+app.use(errorHandler);
 var server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger_default.info(`Server is running on port ${PORT}`);
+}).on("error", (err) => {
+  logger_default.error("HTTP server error:", err);
 });
 var gracefulShutdown = async (signal) => {
-  console.log(`
+  logger_default.warn(`
 ${signal} received. Starting graceful shutdown...`);
   server.close(async () => {
-    console.log("HTTP server closed");
+    logger_default.info("HTTP server closed");
     try {
       await disconnectPrisma();
-      console.log("Database connections closed");
+      logger_default.info("Database connections closed");
       process.exit(0);
     } catch (error) {
-      console.error("Error during shutdown:", error);
+      logger_default.error("Error during shutdown:", error);
       process.exit(1);
     }
   });
   setTimeout(() => {
-    console.error("Could not close connections in time, forcefully shutting down");
+    logger_default.error("Could not close connections in time, forcefully shutting down");
     process.exit(1);
   }, 3e4);
 };
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("uncaughtException", (error) => {
-  console.error("Uncaught Exception:", error);
-  gracefulShutdown("uncaughtException");
+  logger_default.error("Uncaught Exception:", error);
 });
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
-  gracefulShutdown("unhandledRejection");
+  logger_default.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 /*! Bundled license information:
 

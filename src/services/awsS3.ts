@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import logger from "../lib/logger";
 
 const s3 = new S3Client({
     region: process.env.AWS_REGION as string,
@@ -32,7 +33,7 @@ export const getObjectFromS3 = async (key: string) => {
 
         return data;
     } catch (err) {
-        console.error("Error getting object from S3:", err);
+        logger.error("Error getting object from S3:", err);
         throw err;
     }
 };
@@ -50,7 +51,8 @@ export const uploadJsonToS3 = async (key: string, jsonData: object) => {
         const response = await s3.send(command);
         return response;
     } catch (err) {
-        console.log("Error uploading object to S3:", err);
+        logger.error("Error uploading object to S3:", err);
+        throw err;
     }
 };
 
@@ -65,6 +67,7 @@ export const getSignedS3URL = async (key: string) => {
 
         return url;
     } catch (error) {
-        console.log("Error signing URL");
+        logger.error("Error signing URL", error);
+        throw error;
     }
 };

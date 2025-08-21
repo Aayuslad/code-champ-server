@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { idToLanguageMappings } from "../config/languageIdmappings";
 import { getObjectFromS3, getSignedS3URL } from "../services/awsS3";
 import { prisma } from "../lib/prisma";
+import logger from "../lib/logger";
 
 export async function getContestProblem(req: Request, res: Response) {
     const { contestProblemId, participantId } = req.params;
@@ -186,7 +187,7 @@ export async function testContestSolution(req: Request, res: Response) {
 
         return;
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -263,7 +264,7 @@ export async function submitContestSolution(req: Request, res: Response) {
 
         return;
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         res.status(500).json({
             message: "Internal Server Error",
         });
@@ -287,7 +288,7 @@ export async function checkContestBatchSubmission(req: Request, res: Response) {
         };
         return res.json(editedResult);
     } catch (err) {
-        console.log(err);
+        logger.error(err);
 
         res.status(500).json({
             message: "Internal Server Error",

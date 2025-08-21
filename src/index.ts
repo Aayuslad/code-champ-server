@@ -6,8 +6,10 @@ import problemRouter from "./routes/problemRouter";
 import cors from "cors";
 import session from "express-session";
 import morgan from "morgan";
+import logger from "./lib/logger";
 import bodyParser from "body-parser";
 import passport from "./middlewares/passportMiddleware";
+import { errorHandler, notFoundHandler } from "./middlewares/errorMiddleware";
 import contestRouter from "./routes/contestRouter";
 import "./services/cronJobs";
 import contestProblemRouter from "./routes/contestProblemRouter";
@@ -28,7 +30,7 @@ app.use(
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
 app.use(cookieParser());
-app.disable("x-powerd-by");
+app.disable("x-powered-by");
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("tiny"));
 
@@ -62,34 +64,42 @@ app.use("/user", userRouter);
 app.use("/problem", problemRouter);
 app.use("/contest", contestRouter);
 app.use("/contest-problem", contestProblemRouter);
-    
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+
+// 404 and error handlers
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+const server = app
+    .listen(PORT, () => {
+        logger.info(`Server is running on port ${PORT}`);
+    })
+    .on("error", (err) => {
+        logger.error("HTTP server error:", err);
+    });
 
 // Graceful shutdown handling
 const gracefulShutdown = async (signal: string) => {
-    console.log(`\n${signal} received. Starting graceful shutdown...`);
+    logger.warn(`\n${signal} received. Starting graceful shutdown...`);
     
     // Stop accepting new connections
     server.close(async () => {
-        console.log('HTTP server closed');
+        logger.info('HTTP server closed');
         
         try {
             // Close database connections
             await disconnectPrisma();
-            console.log('Database connections closed');
+            logger.info('Database connections closed');
             
             process.exit(0);
         } catch (error) {
-            console.error('Error during shutdown:', error);
+            logger.error('Error during shutdown:', error);
             process.exit(1);
         }
     });
     
     // Force close after 30 seconds
     setTimeout(() => {
-        console.error('Could not close connections in time, forcefully shutting down');
+        logger.error('Could not close connections in time, forcefully shutting down');
         process.exit(1);
     }, 30000);
 };
@@ -98,10 +108,10 @@ const gracefulShutdown = async (signal: string) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    gracefulShutdown('uncaughtException');
+    logger.error('Uncaught Exception:', error);
+    // Keep process alive on EC2; do not exit
 });
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    gracefulShutdown('unhandledRejection');
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Keep process alive on EC2; do not exit
 });
