@@ -25,7 +25,7 @@ problemRouter.get("/check/:taskId/:problemId", authMiddleware, checkBatchSubmiss
 problemRouter.put("/ongoing-problem", authMiddleware, putOngoingProblem);
 problemRouter.get("/ongoing-problem/:problemId/:userId", authMiddleware, getOngoingProblem);
 problemRouter.get("/search", getProblemsBySearch);
-problemRouter.get("/for-contribution/:problemId", getProblemForContribution);
+problemRouter.get("/for-contribution/:problemId", authMiddleware, getProblemForContribution);
 problemRouter.get("/:id", getProblem);
 problemRouter.post("/contribute-testcases", contrubuteTestCases);
 

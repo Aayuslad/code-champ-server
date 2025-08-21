@@ -556,7 +556,12 @@ export async function getProblemForContribution(req: Request, res: Response) {
 
     try {
         const problem = await prisma.problem.findFirst({
-            where: { id: problemId, visibility: "Public", approved: true },
+            where: { 
+                id: problemId, 
+                OR: [
+                    { visibility: "Public" },
+                    { visibility: "Private", createdById: req.user?.id },
+                ], },
             select: {
                 id: true,
                 problemNumber: true,
