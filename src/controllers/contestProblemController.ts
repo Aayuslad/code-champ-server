@@ -280,11 +280,22 @@ export async function checkContestBatchSubmission(req: Request, res: Response) {
             ...result.data,
             contestProblemId,
             tasks:
-                result.data.tasks?.map((task: any) => ({
-                    ...task,
-                    expectedOutput: task.expectedOutput,
-                    inputs: JSON.parse(task.inputs),
-                })) || [],
+                result.data.tasks?.map((task: any, index: number) => {
+                    if (index < 2) {
+                        return {
+                            ...task,
+                            expectedOutput: task.expectedOutput,
+                            inputs: JSON.parse(task.inputs),
+                        };
+                    } else {
+                        return {
+                            id: task.id,
+                            status: task.status,
+                            accepted: task.accepted,
+                            executionTime: task.executionTime,
+                        };
+                    }
+                }) || [],
         };
         return res.json(editedResult);
     } catch (err) {

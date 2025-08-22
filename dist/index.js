@@ -18308,58 +18308,6 @@ var transporter = import_nodemailer.default.createTransport({
   from: process.env.SMTP_FROM
 });
 
-// src/services/mailService.ts
-async function sendOTPMail(to, otp) {
-  try {
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to,
-      subject: "OTP Verification",
-      html: `
-                <div style="font-family: Helvetica, Arial, sans-serif; min-width: 1000px; overflow:auto; line-height:2">
-                    <div style="margin: 50px auto; width: 70%; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-                        <div style="border-bottom: 1px solid #eee; padding-bottom: 20px;">
-                            <h1 style="font-size: 2em; color: #003366; font-weight: 600; margin-bottom: 10px;">Code Champ</h1>
-                            <p style="color: #555; font-size: 1.2em;">Unleash Your Coding Potential</p>
-                        </div>
-                        <p style="font-size: 1.2em; color: #333;">Hi,</p>
-                        <p style="font-size: 1.1em; color: #333;">
-                            You're just one step away from getting started with Code Champ! Use the OTP below to verify your email address and secure your account. This OTP is valid for 5 minutes, so be sure to enter it soon.
-                        </p>
-                        <div style="text-align: center; margin: 20px 0;">
-                            <div style="display: inline-block; background: #003366; color: white; font-size: 1.6em; padding: 5px 15px; border-radius: 8px; letter-spacing: 2px;">${otp}</div>
-                        </div>
-                        <p style="font-size: 1.1em; color: #333;">
-                            At Code Champ, we're dedicated to helping you enhance your problem-solving skills and succeed in your coding journey. Whether you're practicing for interviews or challenging yourself with complex algorithms, we're here to support you every step of the way.
-                        </p>
-                        <p style="font-size: 1.1em; color: #333;">
-                            If you didn\u2019t request this OTP, please contact us immediately or ignore this email.
-                        </p>
-                        <p style="font-size: 0.9em; color: #666;">Best regards,<br />The Code Champ Team</p>
-                        <hr style="border:none; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <div style="padding: 8px 0; color: #aaa; font-size: 0.8em; line-height: 1.5; font-weight: 300">
-                            <p>Code Champ</p>
-                            <p>Navsari, Gujarat</p>
-                            <p>India</p>
-                        </div>
-                    </div>
-                </div>
-            `
-    });
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-// src/controllers/userController.ts
-var import_code_champ_common = require("@aayushlad/code-champ-common");
-var import_bcrypt = __toESM(require("bcrypt"));
-var import_jsonwebtoken = __toESM(require("jsonwebtoken"));
-
-// src/lib/prisma.ts
-var import_client = require("@prisma/client");
-
 // src/lib/logger.ts
 var import_util = __toESM(require("util"));
 function format(message, ...optionalParams) {
@@ -18402,7 +18350,58 @@ var logger = {
 };
 var logger_default = logger;
 
+// src/services/mailService.ts
+async function sendOTPMail(to, otp) {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL,
+      to,
+      subject: "OTP Verification",
+      html: `
+                <div style="font-family: Helvetica, Arial, sans-serif; min-width: 1000px; overflow:auto; line-height:2">
+                    <div style="margin: 50px auto; width: 70%; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                        <div style="border-bottom: 1px solid #eee; padding-bottom: 20px;">
+                            <h1 style="font-size: 2em; color: #003366; font-weight: 600; margin-bottom: 10px;">Code Champ</h1>
+                            <p style="color: #555; font-size: 1.2em;">Unleash Your Coding Potential</p>
+                        </div>
+                        <p style="font-size: 1.2em; color: #333;">Hi,</p>
+                        <p style="font-size: 1.1em; color: #333;">
+                            You're just one step away from getting started with Code Champ! Use the OTP below to verify your email address and secure your account. This OTP is valid for 5 minutes, so be sure to enter it soon.
+                        </p>
+                        <div style="text-align: center; margin: 20px 0;">
+                            <div style="display: inline-block; background: #003366; color: white; font-size: 1.6em; padding: 5px 15px; border-radius: 8px; letter-spacing: 2px;">${otp}</div>
+                        </div>
+                        <p style="font-size: 1.1em; color: #333;">
+                            At Code Champ, we're dedicated to helping you enhance your problem-solving skills and succeed in your coding journey. Whether you're practicing for interviews or challenging yourself with complex algorithms, we're here to support you every step of the way.
+                        </p>
+                        <p style="font-size: 1.1em; color: #333;">
+                            If you didn\u2019t request this OTP, please contact us immediately or ignore this email.
+                        </p>
+                        <p style="font-size: 0.9em; color: #666;">Best regards,<br />The Code Champ Team</p>
+                        <hr style="border:none; border-top: 1px solid #eee; margin: 20px 0;" />
+                        <div style="padding: 8px 0; color: #aaa; font-size: 0.8em; line-height: 1.5; font-weight: 300">
+                            <p>Code Champ</p>
+                            <p>Navsari, Gujarat</p>
+                            <p>India</p>
+                        </div>
+                    </div>
+                </div>
+            `
+    });
+    return true;
+  } catch (error) {
+    logger_default.error("Error sending OTP email:", error);
+    return false;
+  }
+}
+
+// src/controllers/userController.ts
+var import_code_champ_common = require("@aayushlad/code-champ-common");
+var import_bcrypt = __toESM(require("bcrypt"));
+var import_jsonwebtoken = __toESM(require("jsonwebtoken"));
+
 // src/lib/prisma.ts
+var import_client = require("@prisma/client");
 var prisma = globalThis.__prisma || new import_client.PrismaClient({
   datasources: {
     db: {
@@ -18491,7 +18490,15 @@ async function signupUser(req, res) {
     req.session.name = name;
     req.session.userName = userName;
     req.session.password = password;
+    logger_default.info("Data stored in session for signup:", {
+      email: req.session.signupEmail,
+      name: req.session.name,
+      userName: req.session.userName,
+      password: req.session.password,
+      otp: req.session.signupOTP
+    });
     await sendOTPMail(email, otp);
+    logger_default.info("OTP sent to email");
     return res.status(200).json({
       message: "OTP Sent to Email"
     });
@@ -18507,7 +18514,15 @@ async function verifySignupOTP(req, res) {
   try {
     const parsed = import_code_champ_common.verifySignupOTPSchema.safeParse({ otp });
     if (!parsed.success) return res.status(422).json({ message: "Invalid OTP" });
+    logger_default.info("Verifying OTP for signup:", {
+      otp,
+      sessionOTP: req.session.signupOTP,
+      email: req.session.signupEmail,
+      name: req.session.name,
+      userName: req.session.userName
+    });
     if (parseInt(otp) !== req.session.signupOTP) {
+      logger_default.warn("Wrong OTP provided during signup verification", otp, req.session.signupOTP);
       return res.status(400).json({
         message: "Wrong OTP"
       });
@@ -18841,6 +18856,7 @@ async function googleOAuth20Controller(req, res) {
       maxAge: 30 * 24 * 60 * 60 * 1e3
       // 30 days in milliseconds
     });
+    logger_default.info("token cookie and User authenticated via Google OAuth:", req.user.id);
     const redirectUrl = "https://app.codechamp.online/problems";
     res.redirect(redirectUrl);
   } catch (error) {
@@ -18883,6 +18899,7 @@ async function googleOneTapController(req, res) {
             avatar
           }
         });
+        logger_default.info("New user created via Google One Tap:", JSON.stringify(user));
       }
     }
     const jwtToken = import_jsonwebtoken.default.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "30d" });
@@ -18893,6 +18910,7 @@ async function googleOneTapController(req, res) {
       maxAge: 30 * 24 * 60 * 60 * 1e3
       // 30 days in milliseconds
     });
+    logger_default.info("token cookie & User authenticated via Google One Tap:", user.id);
     res.status(200).json({ success: true });
   } catch (error) {
     logger_default.error(error);
@@ -19458,7 +19476,7 @@ async function submitSolution(req, res) {
       submissionId: submission.id,
       languageId,
       code: encodedFinalCode,
-      callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
+      callbackUrl: `https://backend.codechamp.online/submit-task-callback`,
       functionStructure: problem.functionStructure,
       testCaseURL: await getSignedS3URL(problem.testCasesKey)
     });
@@ -19574,10 +19592,17 @@ async function getProblemsBySearch(req, res) {
   }
 }
 async function getProblemForContribution(req, res) {
+  var _a;
   const { problemId } = req.params;
   try {
     const problem = await prisma.problem.findFirst({
-      where: { id: problemId, visibility: "Public", approved: true },
+      where: {
+        id: problemId,
+        OR: [
+          { visibility: "Public" },
+          { visibility: "Private", createdById: (_a = req.user) == null ? void 0 : _a.id }
+        ]
+      },
       select: {
         id: true,
         problemNumber: true,
@@ -19675,7 +19700,7 @@ problemRouter.get("/check/:taskId/:problemId", authMiddleware, checkBatchSubmiss
 problemRouter.put("/ongoing-problem", authMiddleware, putOngoingProblem);
 problemRouter.get("/ongoing-problem/:problemId/:userId", authMiddleware, getOngoingProblem);
 problemRouter.get("/search", getProblemsBySearch);
-problemRouter.get("/for-contribution/:problemId", getProblemForContribution);
+problemRouter.get("/for-contribution/:problemId", authMiddleware, getProblemForContribution);
 problemRouter.get("/:id", getProblem);
 problemRouter.post("/contribute-testcases", contrubuteTestCases);
 var problemRouter_default = problemRouter;
@@ -19699,6 +19724,7 @@ import_passport2.default.use(
     async (accessToken, refreshToken, profile, done) => {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
       try {
+        logger_default.info("Google OAuth callback received for user:", JSON.stringify(profile));
         let user = await prisma.user.findUnique({
           where: { googleId: profile.id }
         });
@@ -19725,6 +19751,7 @@ import_passport2.default.use(
                 avatar: ((_l = (_k = profile.photos) == null ? void 0 : _k[0]) == null ? void 0 : _l.value) || null
               }
             });
+            logger_default.info("New user created:", JSON.stringify(user));
           }
         }
         done(null, user);
@@ -20458,7 +20485,7 @@ async function submitContestSolution(req, res) {
       submissionId: submission.id,
       languageId,
       code: encodedFinalCode,
-      callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-contest-task-callback`,
+      callbackUrl: `https://backend.codechamp.online/submit-contest-task-callback`,
       functionStructure: problem.functionStructure,
       testCaseURL: await getSignedS3URL(problem.testCasesKey)
     });
@@ -20482,11 +20509,22 @@ async function checkContestBatchSubmission(req, res) {
     const editedResult = {
       ...result.data,
       contestProblemId,
-      tasks: ((_a = result.data.tasks) == null ? void 0 : _a.map((task) => ({
-        ...task,
-        expectedOutput: task.expectedOutput,
-        inputs: JSON.parse(task.inputs)
-      }))) || []
+      tasks: ((_a = result.data.tasks) == null ? void 0 : _a.map((task, index) => {
+        if (index < 2) {
+          return {
+            ...task,
+            expectedOutput: task.expectedOutput,
+            inputs: JSON.parse(task.inputs)
+          };
+        } else {
+          return {
+            id: task.id,
+            status: task.status,
+            accepted: task.accepted,
+            executionTime: task.executionTime
+          };
+        }
+      })) || []
     };
     return res.json(editedResult);
   } catch (err) {
@@ -20700,7 +20738,7 @@ var PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 app.use(
   (0, import_cors.default)({
-    origin: ["https://app.codechamp.online", "http://localhost:5173", "http://localhost:5174"],
+    origin: ["https://app.codechamp.online", "http://localhost:5173", "http://localhost:5174", "http://app.codechamp.online", "https://codesandbox.2.codechamp.online"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   })
@@ -20721,9 +20759,7 @@ var sessionConfig = {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-  },
-  // Use MemoryStore only in development
-  store: process.env.NODE_ENV === "production" ? void 0 : new (require("express-session")).MemoryStore()
+  }
 };
 app.use((0, import_express_session.default)(sessionConfig));
 app.use(passportMiddleware_default.initialize());
@@ -20736,6 +20772,116 @@ app.use("/user", userRoutes_default);
 app.use("/problem", problemRouter_default);
 app.use("/contest", contestRouter_default);
 app.use("/contest-problem", contestProblemRouter_default);
+app.post("/submit-task-callback", async (req, res) => {
+  console.log("req body: ", req.body);
+  try {
+    const { submissionId, status } = req.body;
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: { problemId: true, difficultyLevel: true, createdById: true, status: true }
+    });
+    if (!submission) {
+      return res.status(404).json({ message: "Submission not found" });
+    }
+    const prevSub = await prisma.submission.findFirst({
+      where: {
+        problemId: submission.problemId,
+        status: "Accepted"
+      }
+    });
+    let points = void 0;
+    if (!prevSub && status === "Accepted") {
+      const pointsMap = {
+        Basic: 1,
+        Easy: 2,
+        Medium: 4,
+        Hard: 8
+      };
+      points = pointsMap[submission.difficultyLevel] || 0;
+      await prisma.user.update({
+        where: { id: submission.createdById },
+        data: { points: { increment: points } }
+      });
+    }
+    await prisma.submission.update({
+      where: { id: submissionId },
+      data: { status, points: points || 0 }
+    });
+    if (status === "Accepted") {
+      await prisma.problem.update({
+        where: { id: submission.problemId },
+        data: { acceptedSubmissions: { increment: 1 } }
+      });
+    }
+    return res.json({ message: "Webhook received" });
+  } catch (error) {
+    console.error("Error updating submission status:", error);
+    return res.status(500).json({ message: "Error updating submission status" });
+  }
+});
+app.post("/submit-contest-task-callback", async (req, res) => {
+  var _a, _b, _c;
+  const { submissionId, status, passedTestCases } = req.body;
+  console.log("Contest submission callback received:", req.body);
+  try {
+    const submission = await prisma.contestSubmission.findUnique({
+      where: { id: submissionId },
+      select: { contestProblemId: true, points: true, createdByParticipantId: true, status: true }
+    });
+    if (!submission) {
+      return res.status(404).json({ message: "Submission not found" });
+    }
+    const contestProblem = await prisma.contestProblem.findUnique({
+      where: { id: submission.contestProblemId },
+      select: {
+        points: true,
+        problem: { select: { testCasesCount: true } },
+        contest: { select: { bestOf: true } },
+        contestId: true
+      }
+    });
+    const _points = Math.round(
+      ((contestProblem == null ? void 0 : contestProblem.points) ?? 0) * (passedTestCases / (((_a = contestProblem == null ? void 0 : contestProblem.problem) == null ? void 0 : _a.testCasesCount) ?? 1)) * 100
+    ) / 100;
+    await prisma.contestSubmission.update({
+      where: { id: submissionId },
+      data: { status, points: _points || 0 }
+    });
+    const lastSubmissions = await prisma.contestSubmission.findMany({
+      where: {
+        createdByParticipantId: submission.createdByParticipantId,
+        contestProblem: { contestId: contestProblem == null ? void 0 : contestProblem.contestId }
+      },
+      distinct: ["contestProblemId"],
+      // one per problem
+      orderBy: [
+        { contestProblemId: "asc" },
+        // required for DISTINCT ON
+        { createdAt: "desc" }
+        // latest first
+      ],
+      select: { contestProblemId: true, points: true, createdAt: true }
+    });
+    console.log("Last submissions for participant:", JSON.stringify(lastSubmissions));
+    let sum = 0;
+    if (((_b = contestProblem == null ? void 0 : contestProblem.contest) == null ? void 0 : _b.bestOf) === 0) {
+      sum = lastSubmissions.reduce((acc, sub) => acc + (sub.points ?? 0), 0);
+    } else {
+      sum = lastSubmissions.sort((a, b) => (b.points ?? 0) - (a.points ?? 0)).slice(0, (_c = contestProblem == null ? void 0 : contestProblem.contest) == null ? void 0 : _c.bestOf).reduce((acc, sub) => acc + (sub.points ?? 0), 0);
+    }
+    await prisma.contestParticipant.update({
+      where: {
+        id: submission.createdByParticipantId,
+        contestId: contestProblem == null ? void 0 : contestProblem.contestId
+      },
+      data: { score: sum }
+    });
+    return res.json({ message: "Webhook received" });
+  } catch (error) {
+    console.error("Error updating submission status:", error);
+    return res.status(500).json({ message: "Error updating submission status" });
+  }
+});
 app.use(notFoundHandler);
 app.use(errorHandler);
 var server = app.listen(PORT, () => {
