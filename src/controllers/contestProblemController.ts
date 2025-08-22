@@ -252,7 +252,7 @@ export async function submitContestSolution(req: Request, res: Response) {
             submissionId: submission.id,
             languageId: languageId,
             code: encodedFinalCode,
-            callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-contest-task-callback`,
+            callbackUrl: `https://backend.codechamp.online/submit-contest-task-callback`,
             functionStructure: problem.functionStructure,
             testCaseURL: await getSignedS3URL(problem.testCasesKey),
         });

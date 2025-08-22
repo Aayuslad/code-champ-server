@@ -424,7 +424,7 @@ export async function submitSolution(req: Request, res: Response) {
             submissionId: submission.id,
             languageId: languageId,
             code: encodedFinalCode,
-            callbackUrl: `https://code-champ-webhook-handler.vercel.app/submit-task-callback`,
+            callbackUrl: `https://backend.codechamp.online/submit-task-callback`,
             functionStructure: problem.functionStructure,
             testCaseURL: await getSignedS3URL(problem.testCasesKey),
         });
