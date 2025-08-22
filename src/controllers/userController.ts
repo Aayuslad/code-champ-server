@@ -111,6 +111,7 @@ export async function verifySignupOTP(req: Request, res: Response) {
         });
 
         if (parseInt(otp) !== req.session.signupOTP) {
+            logger.warn("Wrong OTP provided during signup verification", otp, req.session.signupOTP);
             return res.status(400).json({
                 message: "Wrong OTP",
             });
